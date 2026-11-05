@@ -13,6 +13,4 @@ struct PendingControls: View {
 
 struct ApplianceControls: View { let device: Device; var body: some View { PendingControls(device: device) } }
 struct VacuumControls: View { let device: Device; var body: some View { PendingControls(device: device) } }
-struct EvChargerControls: View { let device: Device; var body: some View { PendingControls(device: device) } }
-struct SprinklerControls: View { let device: Device; var body: some View { PendingControls(device: device) } }
 struct BlindsControls: View { let device: Device; var body: some View { PendingControls(device: device) } }
