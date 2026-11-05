@@ -82,7 +82,7 @@ private struct GreetingHero: View {
     @Environment(DeviceRepository.self) private var repository
 
     var body: some View {
-        let onCount = repository.devices.filter(.isOn).count
+        let onCount = repository.devices.filter { $0.isOn }.count
         let watts = repository.totalPowerWatts()
         let scene = repository.activeScene
 
@@ -271,7 +271,7 @@ private struct LightsModule: View {
 
     var body: some View {
         let accent = deviceAccent(ControlKind.dimmer)
-        let onCount = lights.filter(.isOn).count
+        let onCount = lights.filter { $0.isOn }.count
         let level = lights.isEmpty
             ? 0
             : lights.reduce(0.0) { $0 + ($1.isOn ? $1.brightness : 0) } / Double(lights.count)
@@ -431,7 +431,7 @@ private struct RoomCarouselTile: View {
 
     var body: some View {
         let devices = repository.devices(in: room)
-        let onCount = devices.filter(.isOn).count
+        let onCount = devices.filter { $0.isOn }.count
         let total = Double(max(devices.count, 1))
         let accent = roomAccent(room)
 
