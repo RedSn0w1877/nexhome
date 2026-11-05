@@ -65,22 +65,6 @@ func roomAccent(_ room: Room) -> Color {
     roomAccents[room.rawValue % roomAccents.count]
 }
 
-/// The colour a light renders in, given its white/colour mode.
-func lightColor(_ device: Device) -> Color {
-    if device.lightColorMode == .color && device.supportsColor {
-        return Color(hue: device.hue / 360, saturation: device.saturation, brightness: 1)
-    }
-    return kelvinColor(device.colorTempK)
-}
-
-/// Rough colour of a colour temperature in kelvin, 2000 K (amber) to 6500 K (cool blue-white).
-func kelvinColor(_ kelvin: Int) -> Color {
-    let t = min(max(Double(kelvin - 2000) / 4500, 0), 1)
-    let warm = Color(hex: 0xFFB45C)
-    let cool = Color(hex: 0xCFE6FF)
-    return warm.lerp(to: cool, t)
-}
-
 extension Color {
     /// Linear blend toward `other` in sRGB — the equivalent of Compose's `lerp(Color, Color, t)`.
     /// (SwiftUI's own `mix(with:by:)` interpolates perceptually, which shifts these accents.)
