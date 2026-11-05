@@ -247,7 +247,9 @@ enum DeviceType: String, CaseIterable, Hashable, Sendable {
     /// Inclusive `first...last` count of this type generated per applicable room.
     var perRoomCount: ClosedRange<Int> {
         switch self {
-        case .ceilingLight: return 1...1
+        // Every house gets its one alarm panel (it only fits in the entryway): Home's security
+        // module and the Security screen are built around it.
+        case .ceilingLight, .securityPanel: return 1...1
         case .outdoorLight, .outdoorCamera: return 1...2
         case .smartPlug: return 1...3
         case .lamp, .wallSconce, .blinds, .smartOutlet, .contactSensor: return 0...2

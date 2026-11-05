@@ -71,7 +71,7 @@ jobs:
           ls -lh "build/$SCHEME-unsigned.ipa"
 
       - name: Upload IPA
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: NexHome-unsigned-ipa
           path: build/NexHome-unsigned.ipa
@@ -79,7 +79,7 @@ jobs:
           retention-days: 30
 
       - name: Upload .app bundle
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: NexHome-app-bundle
           path: build/NexHome.xcarchive/Products/Applications/NexHome.app
@@ -123,7 +123,7 @@ jobs:
 
       - name: Upload screenshots
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: NexHome-simulator-screenshots
           path: build/screenshots
