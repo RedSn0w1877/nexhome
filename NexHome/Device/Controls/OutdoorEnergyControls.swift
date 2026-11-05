@@ -750,10 +750,10 @@ private struct PoolWaterAura: View {
                             let base = h * CGFloat(0.55 + 0.09 * Double(k))
                             for s in 0...20 {
                                 let x = w * CGFloat(s) / 20
-                                let y = base + CGFloat(
-                                    sin((Double(s) / 20 * (2 + Double(k) * 0.4)
-                                        + phase * (k % 2 == 0 ? 1 : -1)) * 2 * .pi)
-                                ) * 5
+                                let direction: Double = k % 2 == 0 ? 1 : -1
+                                let frequency: Double = 2 + Double(k) * 0.4
+                                let angle: Double = (Double(s) / 20 * frequency + phase * direction) * 2 * Double.pi
+                                let y: CGFloat = base + CGFloat(sin(angle)) * 5
                                 if s == 0 { path.move(to: CGPoint(x: x, y: y)) } else {
                                     path.addLine(to: CGPoint(x: x, y: y))
                                 }
@@ -1200,9 +1200,9 @@ private struct ZoneTile: View {
                                 path.move(to: CGPoint(x: 0, y: h))
                                 for s in 0...14 {
                                     let x = w * CGFloat(s) / 14
-                                    let y = level + CGFloat(
-                                        sin((Double(s) / 14 * 1.8 + phase + Double(index) * 0.3) * 2 * .pi)
-                                    ) * 4
+                                    let offset: Double = Double(index) * 0.3
+                                    let angle: Double = (Double(s) / 14 * 1.8 + phase + offset) * 2 * Double.pi
+                                    let y: CGFloat = level + CGFloat(sin(angle)) * 4
                                     path.addLine(to: CGPoint(x: x, y: y))
                                 }
                                 path.addLine(to: CGPoint(x: w, y: h))
