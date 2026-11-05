@@ -78,6 +78,15 @@ struct RootView: View {
             }
         }
         .animation(GlassMotion.enter, value: screen)
+        // Testing hook (mirrors the Android build's `--es openKind`): launching with
+        // `-openKind THERMOSTAT_DIAL` opens the first device of that kind, so CI can screenshot
+        // a sheet without touching the screen. Launch arguments land in UserDefaults.
+        .task {
+            guard let key = UserDefaults.standard.string(forKey: "openKind"),
+                  let kind = ControlKind.allCases.first(where: { $0.key == key }) else { return }
+            let candidates = repository.devices(ofKind: kind)
+            selectedDevice = candidates.first { $0.isOn } ?? candidates.first
+        }
         .onChange(of: photoItem) { _, item in
             guard let item else { return }
             Task {
