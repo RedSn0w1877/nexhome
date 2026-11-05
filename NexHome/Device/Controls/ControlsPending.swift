@@ -11,9 +11,6 @@ struct PendingControls: View {
     }
 }
 
-struct ThermostatControls: View { let device: Device; var body: some View { PendingControls(device: device) } }
-struct WaterHeaterControls: View { let device: Device; var body: some View { PendingControls(device: device) } }
-struct FanControls: View { let device: Device; var body: some View { PendingControls(device: device) } }
 struct LockControls: View { let device: Device; var body: some View { PendingControls(device: device) } }
 struct GarageControls: View { let device: Device; var body: some View { PendingControls(device: device) } }
 struct SecurityPanelControls: View { let device: Device; var body: some View { PendingControls(device: device) } }
