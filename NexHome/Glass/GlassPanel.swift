@@ -2,14 +2,14 @@ import SwiftUI
 
 // MARK: - Shapes
 
-/// Continuous-corner rounded rectangle, the kit's default glass shape. These are insettable so
-/// panels can draw a true inner rim with `strokeBorder`.
-func glassRect(_ radius: CGFloat) -> AnyInsettableShape {
-    AnyInsettableShape(RoundedRectangle(cornerRadius: radius, style: .continuous))
+/// Continuous-corner rounded rectangle, the kit's default glass shape. Type-erased so a panel can
+/// be a rect, a capsule or a circle without the call site carrying a shape generic.
+func glassRect(_ radius: CGFloat) -> AnyShape {
+    AnyShape(RoundedRectangle(cornerRadius: radius, style: .continuous))
 }
 
-let glassCapsule = AnyInsettableShape(Capsule())
-let glassCircle = AnyInsettableShape(Circle())
+let glassCapsule = AnyShape(Capsule())
+let glassCircle = AnyShape(Circle())
 
 // MARK: - GlassPanel
 
@@ -24,7 +24,7 @@ let glassCircle = AnyInsettableShape(Circle())
 /// Interactive panels swell, jelly and glide their highlight under the finger, and a panel with an
 /// `accent` shines that colour onto its neighbours while held. Every panel receives that spill.
 struct GlassPanel<Content: View>: View {
-    var shape: AnyInsettableShape = glassRect(24)
+    var shape: AnyShape = glassRect(24)
     var tint: Color = NexColors.glassTint
     var accent: Color?
     var heavy: Bool = false
@@ -58,8 +58,10 @@ struct GlassPanel<Content: View>: View {
             }
             .overlay {
                 if showHighlight && heavy {
+                    // A specular rim on hero surfaces. Stroked at double width and clipped back to
+                    // the shape, which keeps the inner half only (AnyShape is not insettable).
                     shape
-                        .strokeBorder(
+                        .stroke(
                             LinearGradient(
                                 colors: [
                                     Color.white.opacity(0.42),
@@ -69,8 +71,9 @@ struct GlassPanel<Content: View>: View {
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
                             ),
-                            lineWidth: 0.8
+                            lineWidth: 1.6
                         )
+                        .clipShape(shape)
                         .allowsHitTesting(false)
                 }
             }
