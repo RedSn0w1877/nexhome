@@ -2,13 +2,14 @@ import SwiftUI
 
 // MARK: - Shapes
 
-/// Continuous-corner rounded rectangle, the kit's default glass shape.
-func glassRect(_ radius: CGFloat) -> AnyShape {
-    AnyShape(RoundedRectangle(cornerRadius: radius, style: .continuous))
+/// Continuous-corner rounded rectangle, the kit's default glass shape. These are insettable so
+/// panels can draw a true inner rim with `strokeBorder`.
+func glassRect(_ radius: CGFloat) -> AnyInsettableShape {
+    AnyInsettableShape(RoundedRectangle(cornerRadius: radius, style: .continuous))
 }
 
-let glassCapsule = AnyShape(Capsule())
-let glassCircle = AnyShape(Circle())
+let glassCapsule = AnyInsettableShape(Capsule())
+let glassCircle = AnyInsettableShape(Circle())
 
 // MARK: - GlassPanel
 
@@ -23,7 +24,7 @@ let glassCircle = AnyShape(Circle())
 /// Interactive panels swell, jelly and glide their highlight under the finger, and a panel with an
 /// `accent` shines that colour onto its neighbours while held. Every panel receives that spill.
 struct GlassPanel<Content: View>: View {
-    var shape: AnyShape = glassRect(24)
+    var shape: AnyInsettableShape = glassRect(24)
     var tint: Color = NexColors.glassTint
     var accent: Color?
     var heavy: Bool = false
