@@ -47,6 +47,8 @@ func NexText(_ string: String, _ style: NexType = .body, color: Color = NexColor
         .font(style.font)
         .tracking(style.tracking)
         .foregroundStyle(color)
+        // Clear glass lets the wallpaper through, so give text a faint lift for legibility.
+        .shadow(color: .black.opacity(0.28), radius: 1.5, y: 0.5)
 }
 
 /// Tabular-figure variants used for live numbers that must not jitter.

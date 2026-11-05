@@ -31,7 +31,7 @@ struct DeviceSheet: View {
                 Rectangle()
                     .fill(.ultraThinMaterial)
                     .opacity(fade)
-                    .overlay(Color.black.opacity(0.32 * fade))
+                    .overlay(Color.black.opacity(0.12 * fade))
                     .ignoresSafeArea()
 
                 ScrollView {

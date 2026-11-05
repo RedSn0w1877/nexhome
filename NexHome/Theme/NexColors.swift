@@ -43,14 +43,15 @@ enum NexColors {
     static let gold = Color(hex: 0xFFD84D)
     static let pink = Color(hex: 0xFF7EDB)
 
-    /// Default glass surface tints.
-    static let glassTint = Color.black.opacity(0.05)
-    static let glassTintDark = Color.black.opacity(0.18)
-    static let glassTintLight = Color.white.opacity(0.08)
+    /// Default glass surface tints. Deliberately faint: the glass itself does the work and the
+    /// wallpaper should stay visible through it.
+    static let glassTint = Color.black.opacity(0.0)
+    static let glassTintDark = Color.black.opacity(0.07)
+    static let glassTintLight = Color.white.opacity(0.05)
 
     /// Container colour of liquid tracks and bars.
     static let track = Color(hex: 0x787880).opacity(0.36)
-    static let bar = Color(hex: 0x121212).opacity(0.4)
+    static let bar = Color(hex: 0x121212).opacity(0.14)
 
     /// Scrim behind sheets.
     static let dim = Color.black.opacity(0.38)

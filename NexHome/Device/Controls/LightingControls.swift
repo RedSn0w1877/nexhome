@@ -104,7 +104,7 @@ private struct LightStage: View {
 
         GlassPanel(
             shape: glassRect(24),
-            tint: Color.black.opacity(0.2),
+            tint: Color.black.opacity(0.08),
             accent: liveColor,
             heavy: true,
             interactive: true,

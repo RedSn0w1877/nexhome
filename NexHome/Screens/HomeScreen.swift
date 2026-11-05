@@ -505,7 +505,7 @@ private struct EnergyPanel: View {
                 // Chart well: the sparkline is drawn inside its own glass surface.
                 GlassPanel(
                     shape: glassRect(22),
-                    tint: Color.black.opacity(0.16),
+                    tint: Color.black.opacity(0.064),
                     interactive: true,
                     pressScale: 1.03,
                     surface: AnyView(

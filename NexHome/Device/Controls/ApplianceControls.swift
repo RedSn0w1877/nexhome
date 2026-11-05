@@ -204,7 +204,7 @@ private struct ProgressRing<Center: View>: View {
     var body: some View {
         GlassPanel(
             shape: glassCircle,
-            tint: Color.black.opacity(0.16),
+            tint: Color.black.opacity(0.064),
             heavy: true,
             front: AnyView(
                 ZStack {
@@ -286,7 +286,7 @@ private struct FridgeSheet: View {
             ) {
                 GlassPanel(
                     shape: glassRect(24),
-                    tint: Color.black.opacity(0.12),
+                    tint: Color.black.opacity(0.048),
                     heavy: true,
                     surface: AnyView(FrostAura(warm: doorOpen ? 1 : 0))
                 ) {
@@ -499,7 +499,7 @@ private struct IceBin: View {
     var body: some View {
         GlassPanel(
             shape: glassRect(20),
-            tint: Color.black.opacity(0.16),
+            tint: Color.black.opacity(0.064),
             surface: AnyView(
                 PhaseTimeline(cyclesPerSecond: on ? 0.45 : 0) { phase in
                     GeometryReader { proxy in
@@ -1033,7 +1033,7 @@ private struct MicrowaveSheet: View {
                     VStack(spacing: 14) {
                         GlassPanel(
                             shape: glassCircle,
-                            tint: Color.black.opacity(0.14),
+                            tint: Color.black.opacity(0.056),
                             accent: accent,
                             heavy: true,
                             interactive: true,
@@ -1751,7 +1751,7 @@ private struct PhaseStrip: View {
 
     var body: some View {
         VStack(spacing: 6) {
-            GlassPanel(shape: glassCapsule, tint: Color.black.opacity(0.22)) {
+            GlassPanel(shape: glassCapsule, tint: Color.black.opacity(0.088)) {
                 GeometryReader { proxy in
                     let width = proxy.size.width
                     HStack(spacing: 3) {
@@ -2089,7 +2089,7 @@ private struct VacuumMap: View {
 
     var body: some View {
         let cleaning = device.vacuumState == .cleaning
-        GlassPanel(shape: glassRect(24), tint: Color.black.opacity(0.2), heavy: true) {
+        GlassPanel(shape: glassRect(24), tint: Color.black.opacity(0.08), heavy: true) {
             GeometryReader { proxy in
                 let inset: CGFloat = 14
                 let w = proxy.size.width - inset * 2

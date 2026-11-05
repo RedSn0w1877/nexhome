@@ -576,7 +576,7 @@ private struct HotWaterTank: View {
 
         GlassPanel(
             shape: glassRect(30),
-            tint: Color.black.opacity(0.22),
+            tint: Color.black.opacity(0.088),
             heavy: true,
             surface: AnyView(
                 PhaseTimeline(cyclesPerSecond: rate) { phase in
@@ -684,7 +684,7 @@ private struct PoolSurface: View {
 
         GlassPanel(
             shape: glassRect(24),
-            tint: Color.black.opacity(0.12),
+            tint: Color.black.opacity(0.048),
             heavy: true,
             surface: AnyView(
                 PhaseTimeline(cyclesPerSecond: heating ? 0.3 : 0) { phase in
@@ -1149,7 +1149,7 @@ private struct FanOrb: View {
 
         GlassPanel(
             shape: glassCircle,
-            tint: Color.black.opacity(0.18),
+            tint: Color.black.opacity(0.072),
             accent: accent,
             heavy: true,
             pressScale: GlassMotion.orbPressScale,

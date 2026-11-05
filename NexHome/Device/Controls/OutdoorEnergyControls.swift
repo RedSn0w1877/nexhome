@@ -436,7 +436,7 @@ private struct BatteryPack: View {
             }
             GlassPanel(
                 shape: glassRect(14),
-                tint: Color.black.opacity(0.24),
+                tint: Color.black.opacity(0.096),
                 surface: AnyView(
                     PhaseTimeline(cyclesPerSecond: charging ? 0.6 : 0) { phase in
                         GeometryReader { proxy in
@@ -793,7 +793,7 @@ private struct PumpImpeller: View {
     var body: some View {
         GlassPanel(
             shape: glassCircle,
-            tint: Color.black.opacity(0.16),
+            tint: Color.black.opacity(0.064),
             accent: color,
             heavy: true,
             interactive: true,
@@ -823,7 +823,7 @@ private struct PumpImpeller: View {
                 }
             )
         ) {
-            GlassPanel(shape: glassCircle, tint: Color.black.opacity(0.14), heavy: true) {
+            GlassPanel(shape: glassCircle, tint: Color.black.opacity(0.056), heavy: true) {
                 VStack(spacing: 0) {
                     Text("\(rpm)")
                         .font(NexType.title.font.monospacedDigit())
@@ -893,7 +893,7 @@ struct SprinklerControls: View {
                 } else {
                     GlassPanel(
                         shape: glassRect(24),
-                        tint: Color.black.opacity(0.14),
+                        tint: Color.black.opacity(0.056),
                         heavy: true,
                         surface: AnyView(MistAura(color: statusColor, watering: watering))
                     ) {
@@ -1248,7 +1248,7 @@ private struct SequenceBar: View {
 
     var body: some View {
         let total = max(zones.reduce(0) { $0 + $1.durationMinutes }, 1)
-        GlassPanel(shape: glassCapsule, tint: Color.black.opacity(0.22)) {
+        GlassPanel(shape: glassCapsule, tint: Color.black.opacity(0.088)) {
             GeometryReader { proxy in
                 HStack(spacing: 2) {
                     ForEach(zones) { zone in
@@ -1292,7 +1292,7 @@ private struct SoilMoistureGauge: View {
             }
             GlassPanel(
                 shape: glassCapsule,
-                tint: Color.black.opacity(0.22),
+                tint: Color.black.opacity(0.088),
                 surface: AnyView(
                     GeometryReader { proxy in
                         let w = proxy.size.width

@@ -13,16 +13,11 @@ struct LiquidButton<Content: View>: View {
     var body: some View {
         GlassPanel(
             shape: glassCapsule,
-            tint: .clear,
+            tint: surfaceColor ?? .clear,
+            glassTint: tint?.opacity(0.75),
             accent: tint,
             pressScale: GlassMotion.buttonPressScale,
-            action: action,
-            surface: AnyView(
-                ZStack {
-                    if let tint { tint.opacity(0.75) }
-                    if let surfaceColor { surfaceColor }
-                }
-            )
+            action: action
         ) {
             HStack(spacing: 8) {
                 content()
@@ -211,14 +206,14 @@ struct LiquidChip: View {
     var body: some View {
         GlassPanel(
             shape: glassCapsule,
-            tint: Color.white.opacity(0.06),
+            tint: .clear,
+            glassTint: selected ? accent.opacity(0.6) : nil,
             accent: accent,
             pressScale: GlassMotion.buttonPressScale,
             action: {
                 Haptics.tick()
                 action()
-            },
-            surface: AnyView(accent.opacity(selected ? 0.42 : 0))
+            }
         ) {
             HStack(spacing: 6) {
                 if let symbol {
@@ -250,8 +245,12 @@ struct LiquidChipRow<Content: View>: View {
 
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                content()
+            // One container for the row: neighbouring chips share a sampling region and melt into
+            // each other as they swell under the finger, the way system glass groups do.
+            GlassEffectContainer(spacing: 10) {
+                HStack(spacing: 8) {
+                    content()
+                }
             }
             .padding(.horizontal, 2)
             .padding(.vertical, 6)
@@ -271,15 +270,17 @@ struct LiquidColorOrbs: View {
 
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 14) {
-                ForEach(Array(colors.enumerated()), id: \.offset) { index, color in
-                    ColorOrb(
-                        color: color,
-                        selected: index == selectedIndex,
-                        size: orbSize
-                    ) {
-                        Haptics.tick()
-                        onSelect(index)
+            GlassEffectContainer(spacing: 16) {
+                HStack(spacing: 14) {
+                    ForEach(Array(colors.enumerated()), id: \.offset) { index, color in
+                        ColorOrb(
+                            color: color,
+                            selected: index == selectedIndex,
+                            size: orbSize
+                        ) {
+                            Haptics.tick()
+                            onSelect(index)
+                        }
                     }
                 }
             }

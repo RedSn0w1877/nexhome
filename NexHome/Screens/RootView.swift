@@ -104,7 +104,7 @@ struct RootView: View {
         let onCount = repository.devices.filter { $0.isOn }.count
         return GlassPanel(
             shape: glassCapsule,
-            tint: Color.black.opacity(0.22),
+            tint: Color.black.opacity(0.04),
             showHighlight: false
         ) {
             HStack(spacing: 12) {

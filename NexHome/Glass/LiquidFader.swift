@@ -39,7 +39,7 @@ struct LiquidFader: View {
         let onFill = value > 0.86
         GlassPanel(
             shape: glassRect(30),
-            tint: Color.black.opacity(0.16),
+            tint: Color.black.opacity(0.064),
             accent: accent,
             heavy: true,
             interactive: true,

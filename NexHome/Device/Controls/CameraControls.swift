@@ -728,7 +728,7 @@ private struct PtzJoystick: View {
     var body: some View {
         GlassPanel(
             shape: glassCircle,
-            tint: Color.black.opacity(0.22),
+            tint: Color.black.opacity(0.088),
             heavy: true,
             surface: AnyView(JoystickWell(device: device, accent: accent))
         ) {
@@ -878,7 +878,7 @@ private struct PushToTalkOrb: View {
         VStack(spacing: 10) {
             GlassPanel(
                 shape: glassCircle,
-                tint: Color.black.opacity(0.16),
+                tint: Color.black.opacity(0.064),
                 accent: accent,
                 heavy: true,
                 interactive: true,

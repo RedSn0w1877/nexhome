@@ -29,7 +29,7 @@ struct HeroStage<Aura: View, Content: View>: View {
     var body: some View {
         GlassPanel(
             shape: glassRect(24),
-            tint: Color.black.opacity(0.12),
+            tint: Color.black.opacity(0.048),
             heavy: true,
             surface: AnyView(aura())
         ) {
@@ -151,7 +151,7 @@ struct GlassLevelBar: View {
     var body: some View {
         GlassPanel(
             shape: glassCapsule,
-            tint: Color.black.opacity(0.2),
+            tint: Color.black.opacity(0.08),
             surface: AnyView(
                 GeometryReader { proxy in
                     let h = proxy.size.height

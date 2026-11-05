@@ -40,8 +40,8 @@ struct LiquidDial<Center: View>: View {
         ZStack {
             // 1. Recessed glass well.
             Circle()
-                .fill(Color.black.opacity(0.2))
-                .glassEffect(.regular, in: Circle())
+                .fill(Color.black.opacity(0.07))
+                .glassEffect(.clear, in: Circle())
                 .overlay {
                     Circle()
                         .strokeBorder(Color.white.opacity(0.28), lineWidth: 0.75)

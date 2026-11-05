@@ -195,7 +195,7 @@ private struct MotionRadarStage: View {
     var body: some View {
         GlassPanel(
             shape: glassRect(24),
-            tint: Color.black.opacity(0.16),
+            tint: Color.black.opacity(0.064),
             accent: accent,
             heavy: true,
             surface: AnyView(
@@ -397,7 +397,7 @@ private struct ContactDoorStage: View {
     var body: some View {
         GlassPanel(
             shape: glassRect(24),
-            tint: Color.black.opacity(0.14),
+            tint: Color.black.opacity(0.056),
             accent: accent,
             heavy: true,
             surface: AnyView(
@@ -682,7 +682,7 @@ private struct DetectorStage: View {
     var body: some View {
         GlassPanel(
             shape: glassRect(24),
-            tint: Color.black.opacity(0.16),
+            tint: Color.black.opacity(0.064),
             accent: statusColor,
             heavy: true,
             surface: AnyView(
@@ -911,7 +911,7 @@ private struct LeakStage: View {
     var body: some View {
         GlassPanel(
             shape: glassRect(24),
-            tint: Color.black.opacity(0.18),
+            tint: Color.black.opacity(0.072),
             accent: stateColor,
             heavy: true,
             surface: AnyView(
@@ -1172,7 +1172,7 @@ private struct ClimateDialStage: View {
     var body: some View {
         GlassPanel(
             shape: glassRect(24),
-            tint: Color.black.opacity(0.14),
+            tint: Color.black.opacity(0.056),
             heavy: true,
             surface: AnyView(
                 ZStack {
@@ -1302,7 +1302,7 @@ private struct GenericSensorSheet: View {
 
     var body: some View {
         GlassSection(title: "Reading", symbol: "sensor.fill", accent: accent) {
-            GlassPanel(shape: glassRect(24), tint: Color.black.opacity(0.14), heavy: true) {
+            GlassPanel(shape: glassRect(24), tint: Color.black.opacity(0.056), heavy: true) {
                 VStack(spacing: 8) {
                     GlassIconOrb(
                         symbol: "sensor.fill",

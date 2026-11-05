@@ -25,7 +25,10 @@ let glassCircle = AnyShape(Circle())
 /// `accent` shines that colour onto its neighbours while held. Every panel receives that spill.
 struct GlassPanel<Content: View>: View {
     var shape: AnyShape = glassRect(24)
+    /// A light dimming layer painted over the glass (kept faint so the glass stays see-through).
     var tint: Color = NexColors.glassTint
+    /// Native Liquid Glass tint: colours the material itself (selected chips, lit orbs).
+    var glassTint: Color?
     var accent: Color?
     var heavy: Bool = false
     var interactive: Bool = false
@@ -48,7 +51,7 @@ struct GlassPanel<Content: View>: View {
                 .clipShape(shape)
                 .allowsHitTesting(false)
             }
-            .glassEffect(.regular.interactive(interactive || action != nil), in: shape)
+            .glassEffect(material, in: shape)
             .overlay {
                 if let front {
                     front
@@ -87,6 +90,14 @@ struct GlassPanel<Content: View>: View {
             )
             .contentShape(shape)
     }
+
+    /// Hero surfaces use `.regular` glass, which adapts its density for legibility. Everything else
+    /// uses `.clear` glass, the most see-through variant, so the wallpaper shows through.
+    private var material: Glass {
+        var glass: Glass = heavy ? .regular : .clear
+        if let glassTint { glass = glass.tint(glassTint) }
+        return glass.interactive(interactive || action != nil)
+    }
 }
 
 // MARK: - GlassIconOrb
@@ -104,7 +115,7 @@ struct GlassIconOrb: View {
         let g = clamp01(glow)
         GlassPanel(
             shape: glassCircle,
-            tint: Color.black.opacity(0.12),
+            tint: Color.black.opacity(0.048),
             heavy: true,
             showHighlight: false,
             surface: AnyView(
@@ -153,7 +164,8 @@ struct GlassPill: View {
     var body: some View {
         GlassPanel(
             shape: glassCapsule,
-            tint: lit ? accent.opacity(0.3) : Color.black.opacity(0.14)
+            tint: Color.black.opacity(lit ? 0 : 0.06),
+            glassTint: lit ? accent.opacity(0.55) : nil
         ) {
             NexText(text, .label, color: lit ? .white : NexColors.secondary)
                 .lineLimit(1)
@@ -174,11 +186,11 @@ struct GlassQuickOrb: View {
     var body: some View {
         GlassPanel(
             shape: glassCircle,
-            tint: Color.black.opacity(0.14),
+            tint: Color.black.opacity(lit ? 0 : 0.06),
+            glassTint: lit ? accent.opacity(0.7) : nil,
             accent: accent,
             pressScale: GlassMotion.buttonPressScale,
-            action: action,
-            surface: AnyView(accent.opacity(lit ? 0.55 : 0))
+            action: action
         ) {
             Image(systemName: symbol)
                 .font(.system(size: size * 0.46, weight: .semibold))

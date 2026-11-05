@@ -32,7 +32,7 @@ struct LiquidHoldOrb: View {
             ZStack {
                 GlassPanel(
                     shape: glassCircle,
-                    tint: Color.black.opacity(0.14),
+                    tint: Color.black.opacity(0.056),
                     accent: accent,
                     heavy: true,
                     interactive: true,

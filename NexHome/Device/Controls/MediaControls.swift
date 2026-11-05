@@ -320,7 +320,7 @@ private struct MediaBadge: View {
     var dot: Color?
 
     var body: some View {
-        GlassPanel(shape: glassCapsule, tint: Color.black.opacity(0.28)) {
+        GlassPanel(shape: glassCapsule, tint: Color.black.opacity(0.112)) {
             HStack(spacing: 6) {
                 if let dot {
                     Circle().fill(dot).frame(width: 7)
@@ -348,7 +348,7 @@ struct MediaOrb: View {
             let beat = pulsing ? mediaBeat(phase) : 0
             GlassPanel(
                 shape: glassCircle,
-                tint: Color.black.opacity(0.16),
+                tint: Color.black.opacity(0.064),
                 accent: accent,
                 pressScale: GlassMotion.buttonPressScale,
                 action: action,
@@ -381,7 +381,7 @@ private struct MediaScrubber: View {
             let width = max(proxy.size.width, 1)
             GlassPanel(
                 shape: glassCapsule,
-                tint: Color.black.opacity(0.22),
+                tint: Color.black.opacity(0.088),
                 accent: trackColor,
                 interactive: true,
                 surface: AnyView(
@@ -551,7 +551,7 @@ private struct MediaTvHome: View {
 
     var body: some View {
         let rows = mediaTvApps.count / mediaTvColumns
-        GlassPanel(shape: glassRect(22), tint: Color.black.opacity(0.24), heavy: true) {
+        GlassPanel(shape: glassRect(22), tint: Color.black.opacity(0.096), heavy: true) {
             GeometryReader { proxy in
                 let gap: CGFloat = 10
                 let pad: CGFloat = 12
@@ -605,7 +605,7 @@ private struct MediaDpad: View {
     let onOk: () -> Void
 
     var body: some View {
-        GlassPanel(shape: glassCircle, tint: Color.black.opacity(0.2), heavy: true) {
+        GlassPanel(shape: glassCircle, tint: Color.black.opacity(0.08), heavy: true) {
             ZStack {
                 DpadArrow(symbol: "chevron.up", accent: accent) { onMove(0, -1) }
                     .offset(y: -78)
@@ -734,7 +734,7 @@ private struct MediaLevelMeter: View {
     var body: some View {
         GlassPanel(
             shape: glassRect(20),
-            tint: Color.black.opacity(0.24),
+            tint: Color.black.opacity(0.096),
             surface: AnyView(
                 PhaseTimeline(cyclesPerSecond: active ? 1 / 2.4 : 0) { phase in
                     GeometryReader { proxy in
@@ -1185,7 +1185,7 @@ private struct MediaConstellation: View {
     let accent: Color
 
     var body: some View {
-        GlassPanel(shape: glassRect(22), tint: Color.black.opacity(0.18), heavy: true) {
+        GlassPanel(shape: glassRect(22), tint: Color.black.opacity(0.072), heavy: true) {
             GeometryReader { proxy in
                 let size = proxy.size
                 let center = CGPoint(x: size.width / 2, y: size.height / 2)
