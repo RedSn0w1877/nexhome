@@ -1,0 +1,87 @@
+name: iOS
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ios-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  SCHEME: NexHome
+  PROJECT: NexHome.xcodeproj
+
+jobs:
+  build:
+    name: Build and package IPA
+    # Xcode 27 / macOS 27, Apple silicon only. GA since 2026-10-15.
+    runs-on: xcode-27
+    timeout-minutes: 60
+
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Toolchain
+        run: |
+          set -eux
+          sw_vers
+          xcodebuild -version
+          xcrun --sdk iphoneos --show-sdk-version
+          xcodebuild -showsdks | sed -n '1,40p'
+
+      - name: Build for simulator
+        run: |
+          set -o pipefail
+          xcodebuild build \
+            -project "$PROJECT" \
+            -scheme "$SCHEME" \
+            -configuration Debug \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build/DerivedData \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Archive for device (unsigned)
+        run: |
+          set -o pipefail
+          xcodebuild archive \
+            -project "$PROJECT" \
+            -scheme "$SCHEME" \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath "$PWD/build/$SCHEME.xcarchive" \
+            -derivedDataPath build/DerivedData \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGN_ENTITLEMENTS=""
+
+      - name: Package unsigned IPA
+        run: |
+          set -eux
+          APP="build/$SCHEME.xcarchive/Products/Applications/$SCHEME.app"
+          test -d "$APP"
+          rm -rf build/Payload
+          mkdir -p build/Payload
+          cp -R "$APP" build/Payload/
+          (cd build && zip -qry "$SCHEME-unsigned.ipa" Payload)
+          ls -lh "build/$SCHEME-unsigned.ipa"
+
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: NexHome-unsigned-ipa
+          path: build/NexHome-unsigned.ipa
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload .app bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: NexHome-app-bundle
+          path: build/NexHome.xcarchive/Products/Applications/NexHome.app
+          if-no-files-found: error
+          retention-days: 30
