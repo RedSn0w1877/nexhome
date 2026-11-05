@@ -92,7 +92,8 @@ struct RootView: View {
     // MARK: - Chrome
 
     private var topBar: some View {
-        GlassPanel(
+        let onCount = repository.devices.filter { $0.isOn }.count
+        return GlassPanel(
             shape: glassCapsule,
             tint: Color.black.opacity(0.22),
             showHighlight: false
@@ -101,7 +102,7 @@ struct RootView: View {
                 VStack(alignment: .leading, spacing: 0) {
                     NexText("NexHome", .title).lineLimit(1)
                     NexText(
-                        "\(repository.devices.filter(.isOn).count) of \(repository.devices.count) devices on",
+                        "\(onCount) of \(repository.devices.count) devices on",
                         .caption,
                         color: NexColors.secondary
                     )
