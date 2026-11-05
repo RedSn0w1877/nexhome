@@ -69,7 +69,7 @@ final class DeviceRepository {
 
     func devices(in room: Room) -> [Device] { devicesByRoom[room] ?? [] }
 
-    func countOn(in room: Room) -> Int { devices(in: room).filter(.isOn).count }
+    func countOn(in room: Room) -> Int { devices(in: room).filter { $0.isOn }.count }
 
     /// All devices of `kind` (cached; the device list never changes size).
     func devices(ofKind kind: ControlKind) -> [Device] { byKind[kind] ?? [] }

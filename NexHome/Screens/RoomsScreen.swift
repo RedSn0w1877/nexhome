@@ -9,9 +9,9 @@ struct RoomsScreen: View {
 
     var body: some View {
         let rooms = repository.roomsWithDevices
-        let onCount = repository.devices.filter(\.isOn).count
-        let activeRooms = rooms.filter { !repository.devices(in: $0).filter(\.isOn).isEmpty }.count
-        let lightsOn = repository.devices(ofKind: .dimmer).filter(\.isOn).count
+        let onCount = repository.devices.filter { $0.isOn }.count
+        let activeRooms = rooms.filter { !repository.devices(in: $0).filter { $0.isOn }.isEmpty }.count
+        let lightsOn = repository.devices(ofKind: .dimmer).filter { $0.isOn }.count
         let climate = repository.devices(ofKind: .thermostatDial)
         let averageTemp: Int? = climate.isEmpty
             ? nil
@@ -66,7 +66,7 @@ private struct RoomGridTile: View {
 
     var body: some View {
         let devices = repository.devices(in: room)
-        let onCount = devices.filter(\.isOn).count
+        let onCount = devices.filter { $0.isOn }.count
         let total = Double(max(devices.count, 1))
         let accent = roomAccent(room)
         let climate = devices.first { $0.controlKind == .thermostatDial }

@@ -202,6 +202,7 @@ private struct QuickControl: View {
 
 // MARK: - Shared device state helpers
 
+@MainActor
 func toggleGarage(_ repository: DeviceRepository, _ device: Device) {
     let closedOrClosing = device.garageState == .closed
         || (device.garageState == .moving && !device.garageOpening)

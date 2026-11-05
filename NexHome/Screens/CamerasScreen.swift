@@ -12,7 +12,7 @@ struct CamerasScreen: View {
         let others = Array(cameras.dropFirst())
         let recording = cameras.filter { $0.isRecording && !$0.privacyMode }.count
         let motion = cameras.filter { $0.motionDetected && !$0.privacyMode }.count
-        let privateCount = cameras.filter(\.privacyMode).count
+        let privateCount = cameras.filter { $0.privacyMode }.count
 
         ScrollView {
             LazyVStack(spacing: 12) {

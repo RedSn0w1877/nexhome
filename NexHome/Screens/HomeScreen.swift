@@ -202,7 +202,8 @@ private struct ControlCenterGrid: View {
                 ClimateModule(device: thermostat, onOpen: onDeviceTap)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 SecurityModule(panel: panel, onOpen: onDeviceTap)
-                    .frame(maxWidth: .infinity, height: 158)
+                    .frame(height: 158)
+                    .frame(maxWidth: .infinity)
             }
         }
         .frame(height: 372)
@@ -610,8 +611,9 @@ private let featuredKinds: [ControlKind] = [
     .applianceCycle,
 ]
 
+@MainActor
 func featuredDevices(_ repository: DeviceRepository) -> [Device] {
-    let favorites = repository.devices.filter(\.isFavorite)
+    let favorites = repository.devices.filter { $0.isFavorite }
     let picks = featuredKinds.compactMap { repository.devices(ofKind: $0).first }
     var seen = Set<String>()
     var result: [Device] = []

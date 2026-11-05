@@ -90,7 +90,7 @@ private struct SecurityHero: View {
         let state = panel.alarmState
         let armed = state != .disarmed
         let triggered = state == .triggered
-        let openZones = panel.securityZones.filter(\.isOpen).count
+        let openZones = panel.securityZones.filter { $0.isOpen }.count
 
         GlassPanel(
             shape: glassRect(32),

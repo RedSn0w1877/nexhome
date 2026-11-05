@@ -18,9 +18,9 @@ struct RoomDevicesScreen: View {
             .sorted { $0.controlKind.rawValue < $1.controlKind.rawValue }
         let switchables = devices.filter { switchableKinds.contains($0.controlKind) }
         let lights = devices.filter { $0.controlKind == .dimmer }
-        let onCount = devices.filter(\.isOn).count
-        let lightsOn = lights.filter(\.isOn).count
-        let anySwitchOn = switchables.contains(where: \.isOn)
+        let onCount = devices.filter { $0.isOn }.count
+        let lightsOn = lights.filter { $0.isOn }.count
+        let anySwitchOn = switchables.contains { $0.isOn }
         let watts = devices.reduce(0.0) { $0 + repository.liveWatts($1) }
         let total = Double(max(devices.count, 1))
 
