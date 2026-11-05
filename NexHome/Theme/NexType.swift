@@ -42,7 +42,6 @@ extension View {
 }
 
 /// Convenience: a `Text` already carrying a NexHome type token.
-@inlinable
 func NexText(_ string: String, _ style: NexType = .body, color: Color = NexColors.primary) -> some View {
     Text(string)
         .font(style.font)
