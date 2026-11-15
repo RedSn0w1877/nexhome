@@ -42,6 +42,9 @@ struct CameraFeed: View {
                     image
                         .resizable()
                         .scaledToFill()
+                        // Flexible, so the photo takes the tile's size instead of reporting its
+                        // fill size and widening the grid column.
+                        .frame(minWidth: 0, maxWidth: .infinity, minHeight: 0, maxHeight: .infinity)
                         .transition(.opacity.animation(.easeInOut(duration: 0.45)))
                 case .failure:
                     // Offline or blocked: a plausible dark "no signal" field rather than nothing.
@@ -185,6 +188,7 @@ struct FeedChip<Content: View>: View {
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 5)
-        .glassEffect(tint.map { Glass.clear.tint($0) } ?? .clear, in: Capsule())
+        // Clear glass with a dimming tint: the footage behind can be bright.
+        .glassEffect(.clear.tint(tint ?? Color.black.opacity(0.35)), in: Capsule())
     }
 }
