@@ -722,30 +722,22 @@ private struct PtzJoystick: View {
     @State private var dragging = false
     @State private var steer: Task<Void, Never>?
     @State private var frame: CGRect = .zero
-    @State private var token = LightToken()
-    @Environment(GlassLight.self) private var light: GlassLight?
 
     var body: some View {
         GlassPanel(
             shape: glassCircle,
-            tint: Color.black.opacity(0.088),
-            heavy: true,
             surface: AnyView(JoystickWell(device: device, accent: accent))
         ) {
             GeometryReader { proxy in
                 let travel = max(min(proxy.size.width, proxy.size.height) / 2 - 34, 1)
                 ZStack {
+                    // Solid at rest; a clear glass lens while it is held.
                     Circle()
-                        .fill(Color.white.opacity(dragging ? 0.35 : 0.85))
-                        .overlay {
-                            Circle()
-                                .strokeBorder(accent.opacity(dragging ? 0.9 : 0.4), lineWidth: 2)
-                        }
-                        .glassEffect(.regular.interactive(), in: Circle())
+                        .fill(Color.white.opacity(dragging ? 0.08 : 0.9))
                         .frame(width: 56, height: 56)
+                        .glassEffect(.clear.interactive(), in: Circle())
                         .scaleEffect(dragging ? 1.12 : 1)
                         .offset(knob)
-                        .shadow(color: accent.opacity(dragging ? 0.5 : 0.2), radius: 12)
                 }
                 .frame(width: proxy.size.width, height: proxy.size.height)
                 .contentShape(Circle())
@@ -767,26 +759,13 @@ private struct PtzJoystick: View {
                             }
                             if !dragging {
                                 dragging = true
-                                light?.begin(
-                                    token,
-                                    at: CGPoint(x: frame.midX, y: frame.midY),
-                                    color: accent
-                                )
                                 startSteering()
                             }
-                            light?.move(
-                                token,
-                                to: CGPoint(
-                                    x: frame.midX + vx * travel,
-                                    y: frame.midY + vy * travel
-                                )
-                            )
                         }
                         .onEnded { _ in
                             dragging = false
                             steer?.cancel()
                             steer = nil
-                            light?.end(token)
                             withAnimation(GlassMotion.release) { knob = .zero }
                         }
                 )
@@ -870,47 +849,34 @@ private struct PushToTalkOrb: View {
     let idleLabel: String
 
     @State private var holding = false
-    @State private var frame: CGRect = .zero
-    @State private var token = LightToken()
-    @Environment(GlassLight.self) private var light: GlassLight?
 
     var body: some View {
         VStack(spacing: 10) {
-            GlassPanel(
-                shape: glassCircle,
-                tint: Color.black.opacity(0.064),
-                accent: accent,
-                heavy: true,
-                interactive: true,
-                pressScale: GlassMotion.orbPressScale,
-                surface: AnyView(accent.opacity(holding ? 0.4 : 0)),
-                front: AnyView(VoiceRing(active: holding, accent: accent))
-            ) {
-                Image(systemName: holding ? "waveform" : "mic.fill")
-                    .font(.system(size: 44, weight: .semibold))
-                    .foregroundStyle(.white)
-                    .frame(width: 132, height: 132)
-            }
-            .scaleEffect(holding ? 1.06 : 1)
-            .shadow(color: accent.opacity(holding ? 0.6 : 0.15), radius: holding ? 36 : 16)
-            .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { frame = $0 }
-            .gesture(
+            Image(systemName: holding ? "waveform" : "mic.fill")
+                .font(.system(size: 44, weight: .semibold))
+                .foregroundStyle(.white)
+                .contentTransition(.symbolEffect(.replace))
+                .frame(width: 132, height: 132)
+                .glassControl(Circle(), tint: holding ? accent : nil)
+                .overlay {
+                    VoiceRing(active: holding, accent: accent)
+                        .clipShape(Circle())
+                        .allowsHitTesting(false)
+                }
+                .scaleEffect(holding ? 1.06 : 1)
+                .accessibilityLabel(holding ? "Speaking" : idleLabel)
+                .accessibilityAddTraits(.isButton)
+                .gesture(
                 DragGesture(minimumDistance: 0)
                     .onChanged { _ in
                         guard !holding else { return }
                         holding = true
                         device.talkActive = true
                         Haptics.tap()
-                        light?.begin(
-                            token,
-                            at: CGPoint(x: frame.midX, y: frame.midY),
-                            color: accent
-                        )
                     }
                     .onEnded { _ in
                         holding = false
                         device.talkActive = false
-                        light?.end(token)
                     }
             )
             NexText(holding ? "Speaking…" : idleLabel, .bodyStrong).lineLimit(1)
@@ -976,8 +942,6 @@ private struct DetectionRadar: View {
 
         GlassPanel(
             shape: glassRect(22),
-            tint: NexColors.glassTintLight,
-            accent: accent,
             interactive: true,
             surface: AnyView(
                 PhaseTimeline(cyclesPerSecond: scanning ? 0.4 : 0) { phase in
@@ -1086,8 +1050,6 @@ private struct EventRow: View {
 
         GlassPanel(
             shape: glassRect(20),
-            tint: NexColors.glassTintLight,
-            accent: color,
             action: action,
             surface: AnyView(color.opacity(playing ? 0.18 : 0))
         ) {

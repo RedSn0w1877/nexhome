@@ -1,9 +1,8 @@
 import SwiftUI
 
-/// A liquid-glass device card: a glass accent orb that glows while the device is active, the name,
-/// a live status line, an inline quick control fitting the device's kind, and a slim live progress
-/// bar drawn inside the glass. The card swells, jellies and glides its highlight under the finger
-/// and shines its accent onto neighbouring glass while held.
+/// A device card: a glass tile with the device's icon badge (filled with its accent while active),
+/// the name, a live status line, an inline quick control for its kind, and a slim live progress bar.
+/// Long-press for quick actions.
 struct DeviceCard: View {
     @Bindable var device: Device
     var showRoom: Bool = false
@@ -19,18 +18,8 @@ struct DeviceCard: View {
 
         GlassPanel(
             shape: glassRect(26),
-            tint: NexColors.glassTint,
-            accent: accent,
+            glassTint: alert ? NexColors.red : nil,
             action: action,
-            surface: AnyView(
-                AccentWash(
-                    color: accent,
-                    center: UnitPoint(x: 0.18, y: 0.22),
-                    radiusFraction: 1.125,
-                    amount: active ? 0.12 : 0
-                )
-                .animation(GlassMotion.glow, value: active)
-            ),
             front: progress >= 0
                 ? AnyView(GlassFillBar(fraction: progress, accent: accent, inset: 14))
                 : nil
@@ -41,8 +30,7 @@ struct DeviceCard: View {
                         symbol: device.type.symbol,
                         accent: accent,
                         size: 42,
-                        glow: active ? 1 : 0,
-                        iconTint: active ? .white : accent
+                        glow: active ? 1 : 0
                     )
                     Spacer(minLength: 0)
                     QuickControl(device: device, accent: accent)
@@ -53,7 +41,7 @@ struct DeviceCard: View {
                 NexText(
                     showRoom ? "\(device.room.displayName) · \(deviceStatusText(device))" : deviceStatusText(device),
                     .caption,
-                    color: alert ? NexColors.red : (active ? NexColors.secondary : NexColors.tertiary)
+                    color: alert ? NexColors.primary : (active ? NexColors.secondary : NexColors.tertiary)
                 )
                 .lineLimit(1)
             }
@@ -61,6 +49,21 @@ struct DeviceCard: View {
             .padding(.horizontal, 14)
             .padding(.top, 14)
             .padding(.bottom, 20)
+        }
+        .contextMenu {
+            Button("Open Controls", systemImage: "slider.horizontal.3", action: action)
+            if sheetShowsPowerToggle(device.controlKind) {
+                Button(
+                    device.isOn ? "Turn Off" : "Turn On",
+                    systemImage: "power"
+                ) { device.isOn.toggle() }
+            }
+            Button(
+                device.isFavorite ? "Remove from Favorites" : "Add to Favorites",
+                systemImage: device.isFavorite ? "star.slash" : "star"
+            ) {
+                repository.setFavorite(device, !device.isFavorite)
+            }
         }
     }
 }

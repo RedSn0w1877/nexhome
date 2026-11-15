@@ -2,8 +2,8 @@ import SwiftUI
 
 // MARK: - Shapes
 
-/// Continuous-corner rounded rectangle, the kit's default glass shape. Type-erased so a panel can
-/// be a rect, a capsule or a circle without the call site carrying a shape generic.
+/// Continuous-corner rounded rectangle, the default surface shape. Type-erased so a panel can be a
+/// rect, a capsule or a circle without the call site carrying a shape generic.
 func glassRect(_ radius: CGFloat) -> AnyShape {
     AnyShape(RoundedRectangle(cornerRadius: radius, style: .continuous))
 }
@@ -11,47 +11,71 @@ func glassRect(_ radius: CGFloat) -> AnyShape {
 let glassCapsule = AnyShape(Capsule())
 let glassCircle = AnyShape(Circle())
 
+// MARK: - Glass depth
+
+/// How many glass surfaces enclose a view. Apple's rule for Liquid Glass is one layer: a surface
+/// that sits on the wallpaper is glass, and anything inside it is an inset fill, never more glass.
+/// Controls (buttons, chips, thumbs, orbs) stay glass at any depth, the way toolbar buttons do.
+private struct GlassDepthKey: EnvironmentKey {
+    static let defaultValue = 0
+}
+
+extension EnvironmentValues {
+    var glassDepth: Int {
+        get { self[GlassDepthKey.self] }
+        set { self[GlassDepthKey.self] = newValue }
+    }
+}
+
 // MARK: - GlassPanel
 
-/// The kit's base glass surface, and the only place Liquid Glass is configured.
+/// The base surface every card, module, section and tile is built from.
 ///
-/// On Android this composed a hand-written refraction shader stack (`vibrancy()` + `lens()` +
-/// highlight + inner shadow). Here the real thing does that work: `glassEffect` gives genuine
-/// refraction, specular highlights that track device motion, and the correct behaviour when panels
-/// sit on top of each other — so the Android kit's `heavy` / `light` distinction becomes a tint and
-/// rim treatment rather than two different lens configurations.
-///
-/// Interactive panels swell, jelly and glide their highlight under the finger, and a panel with an
-/// `accent` shines that colour onto its neighbours while held. Every panel receives that spill.
+/// On the wallpaper it is system Liquid Glass (`.regular`, optionally tinted). Inside another
+/// surface it becomes the system inset fill instead, so glass is never stacked on glass. With an
+/// `action` it is a button: the glass reacts to the touch natively, an inset fill dims and dips.
 struct GlassPanel<Content: View>: View {
     var shape: AnyShape = glassRect(24)
-    /// A light dimming layer painted over the glass (kept faint so the glass stays see-through).
-    var tint: Color = NexColors.glassTint
-    /// Native Liquid Glass tint: colours the material itself (selected chips, lit orbs).
+    /// Colours the surface: tinted glass on the wallpaper, a tinted fill when inset.
     var glassTint: Color?
-    var accent: Color?
-    var heavy: Bool = false
+    /// Lets the glass respond to touches even without an `action` (surfaces holding a gesture).
     var interactive: Bool = false
-    var showHighlight: Bool = true
-    var pressScale: CGFloat = GlassMotion.tilePressScale
     var action: (() -> Void)?
-    /// Painted over the glass but under `content` (fills, washes, accent glows).
+    /// Drawn on the surface, under `content` (fills, charts).
     var surface: AnyView?
-    /// Painted over `content` (progress bars, rings, sparklines).
+    /// Drawn over `content` (progress bars, rings, sparklines).
     var front: AnyView?
     @ViewBuilder var content: () -> Content
 
+    @Environment(\.glassDepth) private var depth
+
     var body: some View {
+        if let action {
+            Button(action: action) { panel }
+                .buttonStyle(SurfaceButtonStyle(inset: depth > 0))
+        } else {
+            panel
+        }
+    }
+
+    private var panel: some View {
         content()
+            .environment(\.glassDepth, depth + 1)
             .background {
-                ZStack {
-                    tint
-                    if let surface { surface }
+                if let surface {
+                    surface
+                        .clipShape(shape)
+                        .allowsHitTesting(false)
                 }
-                .clipShape(shape)
-                .allowsHitTesting(false)
             }
-            .glassEffect(material, in: shape)
+            .modifier(
+                SurfaceMaterial(
+                    shape: shape,
+                    inset: depth > 0,
+                    tint: glassTint,
+                    interactive: interactive || action != nil
+                )
+            )
             .overlay {
                 if let front {
                     front
@@ -59,51 +83,74 @@ struct GlassPanel<Content: View>: View {
                         .allowsHitTesting(false)
                 }
             }
-            .overlay {
-                if showHighlight && heavy {
-                    // A specular rim on hero surfaces. Stroked at double width and clipped back to
-                    // the shape, which keeps the inner half only (AnyShape is not insettable).
-                    shape
-                        .stroke(
-                            LinearGradient(
-                                colors: [
-                                    Color.white.opacity(0.42),
-                                    Color.white.opacity(0.06),
-                                    Color.white.opacity(0.22),
-                                ],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            ),
-                            lineWidth: 1.6
-                        )
-                        .clipShape(shape)
-                        .allowsHitTesting(false)
-                }
-            }
-            .glassLightReceiver(shape)
-            .liquidPress(
-                shape,
-                scale: pressScale,
-                accent: accent,
-                enabled: interactive || action != nil,
-                onTap: action
-            )
             .contentShape(shape)
     }
+}
 
-    /// Hero surfaces use `.regular` glass, which adapts its density for legibility. Everything else
-    /// uses `.clear` glass, the most see-through variant, so the wallpaper shows through.
-    private var material: Glass {
-        var glass: Glass = heavy ? .regular : .clear
-        if let glassTint { glass = glass.tint(glassTint) }
-        return glass.interactive(interactive || action != nil)
+/// Glass on the wallpaper, an inset fill inside another surface.
+private struct SurfaceMaterial: ViewModifier {
+    let shape: AnyShape
+    let inset: Bool
+    let tint: Color?
+    let interactive: Bool
+
+    func body(content: Content) -> some View {
+        if inset {
+            content.background {
+                ZStack {
+                    shape.fill(NexColors.fill)
+                    if let tint { shape.fill(tint.opacity(0.28)) }
+                }
+            }
+        } else {
+            content.glassEffect(glass, in: shape)
+        }
+    }
+
+    private var glass: Glass {
+        var glass = Glass.regular
+        if let tint { glass = glass.tint(tint.opacity(0.55)) }
+        return glass.interactive(interactive)
+    }
+}
+
+/// Press response for tappable surfaces. Glass already answers the touch itself; an inset fill
+/// brightens and dips slightly, like a list row.
+private struct SurfaceButtonStyle: ButtonStyle {
+    let inset: Bool
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .brightness(inset && configuration.isPressed ? 0.08 : 0)
+            .scaleEffect(inset && configuration.isPressed ? 0.97 : 1)
+            .animation(GlassMotion.press, value: configuration.isPressed)
+    }
+}
+
+// MARK: - Glass controls
+
+extension View {
+    /// System Liquid Glass for a control (button, chip, thumb, orb): interactive, optionally
+    /// tinted. Controls are glass at any depth.
+    func glassControl<S: Shape>(_ shape: S, tint: Color? = nil) -> some View {
+        var glass = Glass.regular
+        if let tint { glass = glass.tint(tint) }
+        return glassEffect(glass.interactive(), in: shape)
+    }
+}
+
+/// A button style that adds nothing: for buttons whose label is already interactive glass, which
+/// supplies its own press response.
+struct GlassControlButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
     }
 }
 
 // MARK: - GlassIconOrb
 
-/// A round glass orb framing a symbol. `glow` (0...1) floods the orb with `accent` and lights its
-/// rim — e.g. a device's "on" state.
+/// A round icon badge. `glow` (0...1) fills it with `accent`, e.g. a device's "on" state; off, it is
+/// a neutral fill with the symbol in the accent colour (the Home app's tile icon).
 struct GlassIconOrb: View {
     let symbol: String
     var accent: Color = .white
@@ -111,50 +158,44 @@ struct GlassIconOrb: View {
     var glow: Double = 0
     var iconTint: Color?
 
+    @Environment(\.glassDepth) private var depth
+
     var body: some View {
         let g = clamp01(glow)
-        GlassPanel(
-            shape: glassCircle,
-            tint: Color.black.opacity(0.048),
-            heavy: true,
-            showHighlight: false,
-            surface: AnyView(
-                ZStack {
-                    if g > 0.01 {
-                        RadialGradient(
-                            gradient: Gradient(colors: [
-                                accent.opacity(0.20 * g),
-                                accent.opacity(0.04 * g),
-                            ]),
-                            center: UnitPoint(x: 0.5, y: 0.62),
-                            startRadius: 0,
-                            endRadius: size * 0.94
-                        )
-                        .blendMode(.plusLighter)
+        Image(systemName: symbol)
+            .font(.system(size: size * 0.44, weight: .semibold))
+            .foregroundStyle(iconTint ?? (g > 0.5 ? .white : accent))
+            .frame(width: size, height: size)
+            .background {
+                if depth > 0 {
+                    ZStack {
+                        Circle().fill(NexColors.fill)
+                        Circle().fill(accent).opacity(g)
                     }
                 }
-            )
-        ) {
-            Image(systemName: symbol)
-                .font(.system(size: size * 0.44, weight: .semibold))
-                .foregroundStyle(iconTint ?? accent)
-                .frame(width: size, height: size)
+            }
+            .modifier(OrbGlass(enabled: depth == 0, tint: g > 0.01 ? accent.opacity(g) : nil))
+            .animation(GlassMotion.glow, value: g)
+    }
+}
+
+private struct OrbGlass: ViewModifier {
+    let enabled: Bool
+    let tint: Color?
+
+    func body(content: Content) -> some View {
+        if enabled {
+            var glass = Glass.regular
+            if let tint { glass = glass.tint(tint) }
+            return AnyView(content.glassEffect(glass, in: Circle()))
         }
-        .overlay {
-            Circle()
-                .strokeBorder(
-                    Color.white.opacity(0.5).lerp(to: accent, g),
-                    lineWidth: lerp(0.5, 1.5, CGFloat(g))
-                )
-                .allowsHitTesting(false)
-        }
-        .shadow(color: accent.opacity(0.55 * g), radius: size * 0.45)
+        return AnyView(content)
     }
 }
 
 // MARK: - Small shared pieces
 
-/// A compact glass capsule readout (temperature, state), accent-tinted while `lit`.
+/// A compact capsule readout (temperature, state). `lit` shows it in the tinted style.
 struct GlassPill: View {
     let text: String
     var accent: Color = NexColors.cyan
@@ -162,20 +203,17 @@ struct GlassPill: View {
     var height: CGFloat = 32
 
     var body: some View {
-        GlassPanel(
-            shape: glassCapsule,
-            tint: Color.black.opacity(lit ? 0 : 0.06),
-            glassTint: lit ? accent.opacity(0.55) : nil
-        ) {
+        GlassPanel(shape: glassCapsule, glassTint: lit ? accent : nil) {
             NexText(text, .label, color: lit ? .white : NexColors.secondary)
                 .lineLimit(1)
                 .padding(.horizontal, 12)
                 .frame(height: height)
         }
+        .animation(GlassMotion.glow, value: lit)
     }
 }
 
-/// A small round glass button that floods with `accent` while `lit`.
+/// A small round glass button, filled with `accent` while `lit`.
 struct GlassQuickOrb: View {
     let symbol: String
     var accent: Color
@@ -184,24 +222,20 @@ struct GlassQuickOrb: View {
     let action: () -> Void
 
     var body: some View {
-        GlassPanel(
-            shape: glassCircle,
-            tint: Color.black.opacity(lit ? 0 : 0.06),
-            glassTint: lit ? accent.opacity(0.7) : nil,
-            accent: accent,
-            pressScale: GlassMotion.buttonPressScale,
-            action: action
-        ) {
+        Button(action: action) {
             Image(systemName: symbol)
-                .font(.system(size: size * 0.46, weight: .semibold))
+                .font(.system(size: size * 0.42, weight: .semibold))
                 .foregroundStyle(.white)
+                .contentTransition(.symbolEffect(.replace))
                 .frame(width: size, height: size)
+                .glassControl(Circle(), tint: lit ? accent : nil)
         }
+        .buttonStyle(GlassControlButtonStyle())
         .animation(GlassMotion.glow, value: lit)
     }
 }
 
-/// Slim fill bar along the bottom edge of a glass surface.
+/// Slim fill bar along the bottom edge of a surface.
 struct GlassFillBar: View {
     let fraction: Double
     let accent: Color
@@ -212,13 +246,14 @@ struct GlassFillBar: View {
         GeometryReader { proxy in
             let width = max(proxy.size.width - inset * 2, 0)
             ZStack(alignment: .leading) {
-                Capsule().fill(Color.white.opacity(0.12))
+                Capsule().fill(NexColors.track)
                     .frame(width: width, height: 3)
                 Capsule().fill(accent)
                     .frame(width: width * clamp01(fraction), height: 3)
             }
             .frame(width: width, height: 3)
             .position(x: proxy.size.width / 2, y: proxy.size.height - bottom - 1.5)
+            .animation(GlassMotion.glow, value: fraction)
         }
         .allowsHitTesting(false)
     }

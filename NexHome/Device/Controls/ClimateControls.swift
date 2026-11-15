@@ -52,7 +52,6 @@ struct ThermostatControls: View {
                                     .lineLimit(1)
                                 Text("\(device.targetTempF.rounded0)°")
                                     .font(NexType.numeric.font)
-                                    .tracking(NexType.numeric.tracking)
                                     .foregroundStyle(NexColors.primary)
                                     .lineLimit(1)
                                 HStack(spacing: 4) {
@@ -323,7 +322,6 @@ struct WaterHeaterControls: View {
                                 .lineLimit(1)
                                 Text("\(effectiveTarget.rounded0)°")
                                     .font(NexType.numeric.font)
-                                    .tracking(NexType.numeric.tracking)
                                     .foregroundStyle(NexColors.primary)
                                     .lineLimit(1)
                                 HStack(spacing: 4) {
@@ -576,8 +574,6 @@ private struct HotWaterTank: View {
 
         GlassPanel(
             shape: glassRect(30),
-            tint: Color.black.opacity(0.088),
-            heavy: true,
             surface: AnyView(
                 PhaseTimeline(cyclesPerSecond: rate) { phase in
                     GeometryReader { proxy in
@@ -684,8 +680,6 @@ private struct PoolSurface: View {
 
         GlassPanel(
             shape: glassRect(24),
-            tint: Color.black.opacity(0.048),
-            heavy: true,
             surface: AnyView(
                 PhaseTimeline(cyclesPerSecond: heating ? 0.3 : 0) { phase in
                     GeometryReader { proxy in
@@ -879,7 +873,6 @@ struct FanControls: View {
                         VStack(spacing: 0) {
                             Text("\(aqi)")
                                 .font(NexType.numeric.font)
-                                .tracking(NexType.numeric.tracking)
                                 .foregroundStyle(NexColors.primary)
                                 .lineLimit(1)
                             NexText("US AQI", .caption, color: NexColors.secondary).lineLimit(1)
@@ -931,7 +924,6 @@ struct FanControls: View {
                             NexText("TARGET", .caption, color: NexColors.secondary).lineLimit(1)
                             Text("\(device.humidityTarget)%")
                                 .font(NexType.numeric.font)
-                                .tracking(NexType.numeric.tracking)
                                 .foregroundStyle(NexColors.primary)
                                 .lineLimit(1)
                             NexText("Now \(device.humidityPercent)%", .label, color: NexColors.secondary)
@@ -1149,10 +1141,6 @@ private struct FanOrb: View {
 
         GlassPanel(
             shape: glassCircle,
-            tint: Color.black.opacity(0.072),
-            accent: accent,
-            heavy: true,
-            pressScale: GlassMotion.orbPressScale,
             action: action,
             surface: AnyView(
                 PhaseTimeline(cyclesPerSecond: abs(cycles)) { phase in

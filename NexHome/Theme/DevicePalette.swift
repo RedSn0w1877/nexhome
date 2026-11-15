@@ -1,66 +1,54 @@
 import SwiftUI
 
-/// Vivid, harmonious accent per control category — used for glass orbs, fills and glows.
+/// Accent per control category, from Apple's system palette (the same hues the Home app uses:
+/// yellow light, orange climate, teal locks, and so on).
 func deviceAccent(_ kind: ControlKind) -> Color {
     switch kind {
-    case .toggle: return Color(hex: 0xB8F55A)          // electric lime
-    case .dimmer: return Color(hex: 0xFFC46F)          // warm lamplight amber
-    case .thermostatDial: return Color(hex: 0xFF8A4C)  // heat orange
-    case .lock: return Color(hex: 0x5EE6A8)            // secure mint
-    case .garage: return Color(hex: 0x8FA8FF)          // periwinkle
-    case .cameraFeed: return Color(hex: 0xFF5F7E)      // recording coral
-    case .blindsSlider: return Color(hex: 0xFFB38A)    // daylight peach
-    case .mediaPlayer: return Color(hex: 0xC77DFF)     // media violet
-    case .fanSpeed: return Color(hex: 0x6FE3FF)        // airflow cyan
-    case .applianceCycle: return Color(hex: 0x4FD1C5)  // appliance teal
-    case .robotVacuum: return Color(hex: 0x9D8CFF)     // robot lilac
-    case .waterHeaterDial: return Color(hex: 0xFF7A59) // hot water red-orange
-    case .evCharger: return Color(hex: 0x3DF5A0)       // charge green
-    case .sprinklerZones: return Color(hex: 0x52B6FF)  // water sky blue
-    case .sensorReadonly: return Color(hex: 0xFFD84D)  // sensor gold
-    case .securityPanel: return Color(hex: 0xFF4D6D)   // alarm red
+    case .toggle: return NexColors.green
+    case .dimmer: return NexColors.yellow
+    case .thermostatDial: return NexColors.orange
+    case .lock: return NexColors.teal
+    case .garage: return NexColors.indigo
+    case .cameraFeed: return NexColors.pink
+    case .blindsSlider: return NexColors.orange
+    case .mediaPlayer: return NexColors.purple
+    case .fanSpeed: return NexColors.cyan
+    case .applianceCycle: return NexColors.teal
+    case .robotVacuum: return NexColors.indigo
+    case .waterHeaterDial: return NexColors.red
+    case .evCharger: return NexColors.green
+    case .sprinklerZones: return NexColors.blue
+    case .sensorReadonly: return NexColors.mint
+    case .securityPanel: return NexColors.red
     }
 }
 
 /// Per-type refinement of `deviceAccent(_:)` (falls back to the type's control kind).
 func deviceAccent(_ type: DeviceType) -> Color {
     switch type {
-    case .lightStrip: return Color(hex: 0xFF7EDB)
-    case .outdoorLight: return Color(hex: 0xFFD36E)
-    case .wallSconce: return Color(hex: 0xFFB86B)
-    case .smartOutlet: return Color(hex: 0xFFE45E)
-    case .acUnit: return Color(hex: 0x7FD4FF)
-    case .interiorDoor: return Color(hex: 0x9EE6C4)
-    case .doorbellCamera: return Color(hex: 0xFF8A65)
-    case .shade: return Color(hex: 0xF5C99B)
-    case .tv: return Color(hex: 0x8C7BFF)
-    case .soundbar: return Color(hex: 0xE07CFF)
-    case .airPurifier: return Color(hex: 0x9BF6FF)
-    case .bathroomHumidity: return Color(hex: 0x7FB8FF)
-    case .fridge: return Color(hex: 0x8EE3FF)
-    case .oven: return Color(hex: 0xFF6A3D)
-    case .microwave: return Color(hex: 0xFFA24C)
-    case .dishwasher: return Color(hex: 0x4FD1C5)
-    case .washingMachine: return Color(hex: 0x6EC8FF)
-    case .dryer: return Color(hex: 0xB39DFF)
-    case .grill: return Color(hex: 0xFF5A36)
-    case .poolHeater: return Color(hex: 0x3FD8E8)
-    case .poolPump: return Color(hex: 0x2FC7F0)
-    case .contactSensor: return Color(hex: 0x8FA8FF)
-    case .smokeDetector: return Color(hex: 0xFF9F43)
-    case .coDetector: return Color(hex: 0xFFB74D)
-    case .leakSensor: return Color(hex: 0x4DA8FF)
-    case .climateSensor: return Color(hex: 0x7CF5C4)
+    case .lightStrip: return NexColors.pink
+    case .acUnit: return NexColors.cyan
+    case .tv: return NexColors.indigo
+    case .fridge: return NexColors.cyan
+    case .oven, .grill: return NexColors.red
+    case .microwave: return NexColors.orange
+    case .washingMachine: return NexColors.blue
+    case .dryer: return NexColors.purple
+    case .poolHeater: return NexColors.cyan
+    case .poolPump: return NexColors.blue
+    case .smokeDetector, .coDetector: return NexColors.orange
+    case .leakSensor: return NexColors.blue
+    case .contactSensor: return NexColors.indigo
     default: return deviceAccent(type.controlKind)
     }
 }
 
 private let roomAccents: [Color] = [
-    NexColors.cyan, NexColors.violet, NexColors.amber, NexColors.rose, NexColors.mint, NexColors.blue,
-    NexColors.orange, NexColors.lime, NexColors.teal, NexColors.indigo, NexColors.gold, NexColors.pink,
+    NexColors.cyan, NexColors.purple, NexColors.yellow, NexColors.pink, NexColors.mint, NexColors.blue,
+    NexColors.orange, NexColors.green, NexColors.teal, NexColors.indigo, NexColors.red,
 ]
 
-/// A stable, vivid accent per room (used for room tiles, orbs and glows).
+/// A stable accent per room.
 func roomAccent(_ room: Room) -> Color {
     roomAccents[room.rawValue % roomAccents.count]
 }

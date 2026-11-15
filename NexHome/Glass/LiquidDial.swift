@@ -3,10 +3,11 @@ import SwiftUI
 private let dialStartAngle: Double = 135
 private let dialSweepAngle: Double = 270
 
-/// Round glass dial (thermostats, set points, read-only gauges).
+/// Round dial (thermostats, set points, read-only gauges).
 ///
-/// A recessed glass well, a 270° track with the accent value arc and optional detent ticks, the
-/// centre readout, and an orbiting glass knob. Dragging anywhere on the ring band sets the value;
+/// An inset well, a 270° track with the accent value arc and optional detent ticks, the centre
+/// readout, and an orbiting knob that turns to clear glass while it is dragged, like the system
+/// slider's thumb. Dragging anywhere on the ring band sets the value;
 /// the centre stays free. `detents` > 0 snaps the value to that step and ticks a haptic per step.
 struct LiquidDial<Center: View>: View {
     let value: Double
@@ -15,7 +16,7 @@ struct LiquidDial<Center: View>: View {
     var readOnly: Bool = false
     var detents: Double = 0
     var size: CGFloat = 240
-    var trackColor: Color = Color.white.opacity(0.12)
+    var trackColor: Color = NexColors.track
     var onChange: ((Double) -> Void)?
     var onCommit: (() -> Void)?
     @ViewBuilder var center: () -> Center
@@ -26,9 +27,6 @@ struct LiquidDial<Center: View>: View {
     @State private var dragging = false
     @State private var dragFraction: Double = -1
     @State private var lastTick = Int.min
-    @State private var frame: CGRect = .zero
-    @State private var token = LightToken()
-    @Environment(GlassLight.self) private var light: GlassLight?
 
     private var fraction: Double {
         let span = range.upperBound - range.lowerBound
@@ -38,29 +36,9 @@ struct LiquidDial<Center: View>: View {
 
     var body: some View {
         ZStack {
-            // 1. Recessed glass well.
+            // 1. Inset well.
             Circle()
-                .fill(Color.black.opacity(0.07))
-                .glassEffect(.clear, in: Circle())
-                .overlay {
-                    Circle()
-                        .strokeBorder(Color.white.opacity(0.28), lineWidth: 0.75)
-                }
-                .overlay {
-                    // Reads as a recess: a dark inner falloff at the rim.
-                    Circle()
-                        .strokeBorder(
-                            RadialGradient(
-                                colors: [Color.black.opacity(0.45), .clear],
-                                center: .center,
-                                startRadius: size / 2 - 22,
-                                endRadius: size / 2
-                            ),
-                            lineWidth: 22
-                        )
-                        .allowsHitTesting(false)
-                }
-                .glassLightReceiver(glassCircle)
+                .fill(NexColors.fill)
 
             // 2. Track, value arc and detent ticks.
             Circle()
@@ -70,12 +48,6 @@ struct LiquidDial<Center: View>: View {
                 .padding(ringInset)
 
             if fraction > 0.001 {
-                Circle()
-                    .trim(from: 0, to: 0.75 * fraction)
-                    .rotation(.degrees(dialStartAngle))
-                    .stroke(accent.opacity(0.28), style: StrokeStyle(lineWidth: 22, lineCap: .round))
-                    .padding(ringInset)
-                    .blur(radius: 2)
                 Circle()
                     .trim(from: 0, to: 0.75 * fraction)
                     .rotation(.degrees(dialStartAngle))
@@ -103,18 +75,18 @@ struct LiquidDial<Center: View>: View {
             // 3. Centre readout.
             center()
 
-            // 4. Orbiting glass knob.
+            // 4. Orbiting knob: solid at rest, a clear glass lens while dragged.
             Circle()
-                .fill(Color.white.opacity(dragging ? 0.35 : 0.92))
+                .fill(Color.white.opacity(dragging ? 0.08 : 1))
                 .overlay {
                     Circle()
-                        .fill(accent.opacity(dragging ? 0 : 1))
+                        .fill(accent)
                         .frame(width: (readOnly ? 28 : 36) * 0.4)
+                        .opacity(dragging ? 0 : 1)
                 }
-                .glassEffect(.regular.interactive(), in: Circle())
                 .frame(width: readOnly ? 28 : 36, height: readOnly ? 28 : 36)
-                .scaleEffect(dragging ? 1.45 : 1)
-                .shadow(color: .black.opacity(0.2), radius: 6)
+                .glassEffect(.clear.interactive(), in: Circle())
+                .scaleEffect(dragging ? 1.5 : 1)
                 .offset(
                     x: cos(knobAngle) * ringRadius,
                     y: sin(knobAngle) * ringRadius
@@ -122,10 +94,21 @@ struct LiquidDial<Center: View>: View {
                 .allowsHitTesting(false)
         }
         .frame(width: size, height: size)
-        .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { frame = $0 }
         .animation(dragging ? nil : GlassMotion.blob, value: value)
         .animation(GlassMotion.release, value: dragging)
         .gesture(readOnly ? nil : ringDrag)
+        .accessibilityElement(children: .combine)
+        .accessibilityValue("\(Int(value.rounded()))")
+        .accessibilityAdjustableAction { direction in
+            guard !readOnly else { return }
+            let step = detents > 0 ? detents : (range.upperBound - range.lowerBound) / 20
+            switch direction {
+            case .increment: onChange?(clamp(value + step, range.lowerBound, range.upperBound))
+            case .decrement: onChange?(clamp(value - step, range.lowerBound, range.upperBound))
+            @unknown default: break
+            }
+            onCommit?()
+        }
     }
 
     private var knobAngle: Double {
@@ -145,17 +128,14 @@ struct LiquidDial<Center: View>: View {
                     dragging = true
                     dragFraction = -1
                     lastTick = Int.min
-                    light?.begin(token, at: knobGlobalPoint(), color: accent)
                 }
                 guard dragging else { return }
                 apply(vector)
-                light?.move(token, to: knobGlobalPoint())
             }
             .onEnded { _ in
                 guard dragging else { return }
                 dragging = false
                 dragFraction = -1
-                light?.end(token)
                 onCommit?()
             }
     }
@@ -182,13 +162,6 @@ struct LiquidDial<Center: View>: View {
             lastTick = tick
         }
         if candidate != value { onChange?(candidate) }
-    }
-
-    private func knobGlobalPoint() -> CGPoint {
-        CGPoint(
-            x: frame.midX + cos(knobAngle) * ringRadius,
-            y: frame.midY + sin(knobAngle) * ringRadius
-        )
     }
 
     /// Maps a touch vector (from the centre) to 0...1 along the arc; `previous` < 0 allows any jump.

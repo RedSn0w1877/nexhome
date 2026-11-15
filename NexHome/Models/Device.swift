@@ -10,9 +10,9 @@ import Observation
 @Observable
 final class Device: Identifiable {
     let id: String
-    let name: String
+    var name: String
     let type: DeviceType
-    let room: Room
+    var room: Room
 
     var isOn: Bool
     var isOnline: Bool = true

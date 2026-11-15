@@ -19,8 +19,6 @@ struct RoomsScreen: View {
 
         ScrollView {
             LazyVStack(spacing: 12) {
-                ScreenTitle("Rooms", subtitle: "\(rooms.count) rooms · \(onCount) devices on")
-
                 HStack(spacing: 10) {
                     GlassStatPill(
                         value: "\(activeRooms)",
@@ -56,6 +54,10 @@ struct RoomsScreen: View {
             .padding(.vertical, 8)
         }
         .scrollIndicators(.hidden)
+        .wallpaperBackground()
+        .navigationTitle("Rooms")
+        .navigationSubtitle("\(rooms.count) rooms · \(onCount) devices on")
+        .toolbar { HomeToolbar() }
     }
 }
 
@@ -74,8 +76,6 @@ private struct RoomGridTile: View {
 
         GlassPanel(
             shape: glassRect(28),
-            tint: NexColors.glassTint,
-            accent: accent,
             action: action,
             front: AnyView(GlassFillBar(fraction: Double(onCount) / total, accent: accent))
         ) {

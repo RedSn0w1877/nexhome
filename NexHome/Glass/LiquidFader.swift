@@ -1,9 +1,8 @@
 import SwiftUI
 
-/// Tall Control-Center-style glass fader. The accent fill rises from the bottom inside the glass and
-/// follows the value with a liquid spring; dragging past either end rubber-bands the whole pill
-/// (stretching away from the anchored edge) and it springs back on release. The pill swells while
-/// held and shines `accent` onto its neighbours.
+/// Tall Control Center fader. The accent fill rises from the bottom and follows the value with a
+/// spring; dragging past either end rubber-bands the whole pill (stretching away from the anchored
+/// edge) and it springs back on release, as Control Center's sliders do.
 ///
 /// `value` is 0...1. Drags are relative, so touching the pill never jumps the value.
 struct LiquidFader: View {
@@ -24,9 +23,6 @@ struct LiquidFader: View {
     @State private var raw: Double = 0
     @State private var stretch: CGFloat = 0
     @State private var lastTick = -1
-    @State private var frame: CGRect = .zero
-    @State private var token = LightToken()
-    @Environment(GlassLight.self) private var light: GlassLight?
 
     private var fill: Double { clamp01(value) }
 
@@ -39,21 +35,13 @@ struct LiquidFader: View {
         let onFill = value > 0.86
         GlassPanel(
             shape: glassRect(30),
-            tint: Color.black.opacity(0.064),
-            accent: accent,
-            heavy: true,
             interactive: true,
             surface: AnyView(
                 GeometryReader { proxy in
                     VStack(spacing: 0) {
                         Spacer(minLength: 0)
-                        ZStack(alignment: .top) {
-                            accent.opacity(0.9)
-                            Color.white.opacity(0.35)
-                                .frame(height: 2)
-                                .blendMode(.plusLighter)
-                        }
-                        .frame(height: proxy.size.height * fill)
+                        accent
+                            .frame(height: proxy.size.height * fill)
                     }
                     .animation(.spring(response: 0.306, dampingFraction: 0.62), value: fill)
                 }
@@ -91,7 +79,6 @@ struct LiquidFader: View {
             y: 1 + abs(stretch) / max(height, 1),
             anchor: stretch >= 0 ? .bottom : .top
         )
-        .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { frame = $0 }
         .gesture(
             DragGesture(minimumDistance: 2)
                 .onChanged { gesture in
@@ -99,9 +86,6 @@ struct LiquidFader: View {
                         dragging = true
                         startValue = value
                         lastTick = Int((value * 10).rounded())
-                        light?.begin(token, at: globalPoint(gesture.location), color: accent)
-                    } else {
-                        light?.move(token, to: globalPoint(gesture.location))
                     }
                     let h = max(height, 1)
                     raw = startValue - Double(gesture.translation.height) / Double(h)
@@ -121,14 +105,20 @@ struct LiquidFader: View {
                 }
                 .onEnded { _ in
                     dragging = false
-                    light?.end(token)
                     withAnimation(GlassMotion.release) { stretch = 0 }
                     onCommit?()
                 }
         )
-    }
-
-    private func globalPoint(_ local: CGPoint) -> CGPoint {
-        CGPoint(x: frame.minX + local.x, y: frame.minY + local.y)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(label ?? "Level")
+        .accessibilityValue(text)
+        .accessibilityAdjustableAction { direction in
+            switch direction {
+            case .increment: onChange(clamp01(value + 0.1))
+            case .decrement: onChange(clamp01(value - 0.1))
+            @unknown default: break
+            }
+            onCommit?()
+        }
     }
 }

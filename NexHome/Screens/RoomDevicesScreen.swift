@@ -2,12 +2,11 @@ import SwiftUI
 
 private let switchableKinds: Set<ControlKind> = [.dimmer, .toggle, .fanSpeed, .mediaPlayer]
 
-/// One room: a back button and title, a heavy glass hero (room orb glowing with the share of
-/// devices on, live power, a lights-on pill and an accent "All on / All off" button), then a grid
-/// of glass device cards.
+/// One room, pushed onto the navigation stack: a glass hero (room badge filled by the share of
+/// devices on, live power, a lights-on pill and an "All on / All off" button), then a grid of
+/// device cards.
 struct RoomDevicesScreen: View {
     let room: Room
-    let onBack: () -> Void
     let onDeviceTap: (Device) -> Void
 
     @Environment(DeviceRepository.self) private var repository
@@ -26,22 +25,7 @@ struct RoomDevicesScreen: View {
 
         ScrollView {
             LazyVStack(spacing: 12) {
-                ScreenTitle(title: room.displayName, subtitle: "\(devices.count) devices") {
-                    LiquidButton(action: onBack) {
-                        Image(systemName: "chevron.left")
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundStyle(NexColors.primary)
-                    }
-                }
-
-                GlassPanel(
-                    shape: glassRect(30),
-                    tint: NexColors.glassTintDark,
-                    heavy: true,
-                    surface: AnyView(
-                        AccentWash(color: accent, amount: 0.12 + 0.22 * (Double(onCount) / total))
-                    )
-                ) {
+                GlassPanel(shape: glassRect(30)) {
                     VStack(alignment: .leading, spacing: 16) {
                         HStack(spacing: 14) {
                             GlassIconOrb(
@@ -108,5 +92,8 @@ struct RoomDevicesScreen: View {
             .padding(.vertical, 8)
         }
         .scrollIndicators(.hidden)
+        .wallpaperBackground()
+        .navigationTitle(room.displayName)
+        .navigationSubtitle("\(devices.count) devices")
     }
 }

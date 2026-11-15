@@ -104,9 +104,6 @@ private struct LightStage: View {
 
         GlassPanel(
             shape: glassRect(24),
-            tint: Color.black.opacity(0.08),
-            accent: liveColor,
-            heavy: true,
             interactive: true,
             surface: AnyView(
                 LightStageCanvas(
@@ -757,9 +754,6 @@ private struct PowerWavePanel: View {
 
         GlassPanel(
             shape: glassRect(24),
-            tint: NexColors.glassTintDark,
-            accent: accent,
-            heavy: true,
             interactive: true,
             surface: AnyView(
                 PowerWave(amplitude: amplitude, accent: accent, animating: on)
@@ -1004,8 +998,6 @@ private struct LoadGauge: View {
 
         GlassPanel(
             shape: glassCapsule,
-            tint: NexColors.glassTintDark,
-            accent: accent,
             interactive: true,
             surface: AnyView(
                 GeometryReader { proxy in

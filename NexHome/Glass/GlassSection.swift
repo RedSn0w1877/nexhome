@@ -1,18 +1,17 @@
 import SwiftUI
 
-/// A titled glass panel — the building block of every device sheet.
+/// A titled glass card, the building block of every device sheet.
 struct GlassSection<Content: View>: View {
     var title: String?
     var symbol: String?
     var accent: Color?
-    var tint: Color = NexColors.glassTintDark
     var padding: CGFloat = 16
     var spacing: CGFloat = 14
     var trailing: AnyView?
     @ViewBuilder var content: () -> Content
 
     var body: some View {
-        GlassPanel(shape: glassRect(28), tint: tint, heavy: true) {
+        GlassPanel(shape: glassRect(28)) {
             VStack(alignment: .leading, spacing: spacing) {
                 if title != nil || trailing != nil || symbol != nil {
                     HStack(spacing: 8) {
@@ -28,6 +27,8 @@ struct GlassSection<Content: View>: View {
                         Spacer(minLength: 0)
                         if let trailing { trailing }
                     }
+                    .accessibilityElement(children: .combine)
+                    .accessibilityAddTraits(.isHeader)
                 }
                 content()
             }
@@ -37,8 +38,23 @@ struct GlassSection<Content: View>: View {
     }
 }
 
-/// A glass settings row: optional icon orb, title + subtitle, and a trailing slot (usually a
-/// `LiquidToggle`, a value or a `LiquidStepper`).
+/// The Settings-app icon: a white symbol on a rounded, accent-filled square.
+struct SettingsIcon: View {
+    let symbol: String
+    var accent: Color
+    var size: CGFloat = 30
+
+    var body: some View {
+        Image(systemName: symbol)
+            .font(.system(size: size * 0.5, weight: .semibold))
+            .foregroundStyle(.white)
+            .frame(width: size, height: size)
+            .background(accent, in: RoundedRectangle(cornerRadius: size * 0.27, style: .continuous))
+    }
+}
+
+/// A settings row inside a section: Settings-style icon, title and subtitle, and a trailing slot
+/// (usually a toggle, a value or a stepper). With an `action` the whole row is a button.
 struct GlassSettingRow<Trailing: View>: View {
     let title: String
     var symbol: String?
@@ -48,17 +64,10 @@ struct GlassSettingRow<Trailing: View>: View {
     @ViewBuilder var trailing: () -> Trailing
 
     var body: some View {
-        GlassPanel(
-            shape: glassRect(20),
-            tint: NexColors.glassTintLight,
-            accent: action != nil ? accent : nil,
-            interactive: true,
-            pressScale: 1.04,
-            action: action
-        ) {
+        GlassPanel(shape: glassRect(20), action: action) {
             HStack(spacing: 12) {
                 if let symbol {
-                    GlassIconOrb(symbol: symbol, accent: accent, size: 36, glow: 0.35, iconTint: .white)
+                    SettingsIcon(symbol: symbol, accent: accent)
                 }
                 VStack(alignment: .leading, spacing: 2) {
                     NexText(title, .bodyStrong).lineLimit(1)
@@ -68,10 +77,15 @@ struct GlassSettingRow<Trailing: View>: View {
                 }
                 Spacer(minLength: 4)
                 trailing()
+                if action != nil && Trailing.self == EmptyView.self {
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(NexColors.tertiary)
+                }
             }
-            .frame(minHeight: 60)
+            .frame(minHeight: 56)
             .padding(.horizontal, 14)
-            .padding(.vertical, 10)
+            .padding(.vertical, 8)
         }
     }
 }
@@ -91,7 +105,7 @@ extension GlassSettingRow where Trailing == EmptyView {
     }
 }
 
-/// A glass stat tile: symbol + label, a big value with a unit, and an optional sparkline.
+/// A stat tile: symbol and label, a big value with a unit, and an optional sparkline.
 struct GlassMetricTile: View {
     let label: String
     let value: String
@@ -104,9 +118,6 @@ struct GlassMetricTile: View {
     var body: some View {
         GlassPanel(
             shape: glassRect(22),
-            tint: NexColors.glassTintLight,
-            accent: action != nil ? accent : nil,
-            interactive: true,
             action: action,
             front: history.map { data in
                 AnyView(Sparkline(values: data, accent: accent).padding(.bottom, 10))
@@ -122,7 +133,10 @@ struct GlassMetricTile: View {
                     NexText(label, .caption, color: NexColors.secondary).lineLimit(1)
                 }
                 HStack(alignment: .lastTextBaseline, spacing: 4) {
-                    NexText(value, .title).lineLimit(1)
+                    NexText(value, .title)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
+                        .contentTransition(.numericText())
                     if let unit {
                         NexText(unit, .label, color: NexColors.tertiary).lineLimit(1)
                     }
@@ -133,6 +147,7 @@ struct GlassMetricTile: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(14)
+            .accessibilityElement(children: .combine)
         }
     }
 }

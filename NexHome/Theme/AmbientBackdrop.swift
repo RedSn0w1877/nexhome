@@ -106,14 +106,13 @@ struct AmbientBackdrop: View {
                     )
                     ForEach(Array(theme.blobs.enumerated()), id: \.offset) { _, blob in
                         Circle()
-                            .fill(blob.color.opacity(0.55))
+                            .fill(blob.color.opacity(0.35))
                             .frame(width: size.width * blob.size, height: size.width * blob.size)
                             .blur(radius: size.width * 0.16)
                             .position(
                                 x: size.width * blob.center.x,
                                 y: size.height * blob.center.y
                             )
-                            .blendMode(.plusLighter)
                     }
                     // Keep the darkest corners from going muddy and the brightest from blowing out.
                     LinearGradient(

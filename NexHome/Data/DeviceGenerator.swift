@@ -167,6 +167,22 @@ enum DeviceGenerator {
         return devices
     }
 
+    /// A single device added by hand in Setup, seeded with plausible live state. The seed comes
+    /// from the id, so the device looks the same every launch.
+    static func makeDevice(id: String, name: String, type: DeviceType, room: Room) -> Device {
+        var hash: UInt64 = 0xcbf2_9ce4_8422_2325
+        for byte in id.utf8 {
+            hash ^= UInt64(byte)
+            hash = hash &* 0x0000_0100_0000_01b3
+        }
+        var random = SeededRandom(seed: hash)
+        let device = Device(id: id, name: name, type: type, room: room, initiallyOn: true)
+        seedState(device, &random)
+        seedGeneral(device, &random)
+        device.isOnline = true
+        return device
+    }
+
     // MARK: - Per-kind seeding
 
     private static func seedState(_ device: Device, _ random: inout SeededRandom) {

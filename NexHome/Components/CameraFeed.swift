@@ -173,18 +173,18 @@ private struct FeedShimmer: View {
     }
 }
 
-/// A small glass capsule over a feed (LIVE, timestamp, motion).
+/// A small capsule of clear glass over a feed (LIVE, timestamp, motion). Clear glass is the
+/// variant Apple uses over photos and video.
 struct FeedChip<Content: View>: View {
-    var tint: Color = Color.black.opacity(0.28)
+    var tint: Color?
     @ViewBuilder var content: () -> Content
 
     var body: some View {
-        GlassPanel(shape: glassCapsule, tint: tint) {
-            HStack(spacing: 5) {
-                content()
-            }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 5)
+        HStack(spacing: 5) {
+            content()
         }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 5)
+        .glassEffect(tint.map { Glass.clear.tint($0) } ?? .clear, in: Capsule())
     }
 }

@@ -29,8 +29,6 @@ struct HeroStage<Aura: View, Content: View>: View {
     var body: some View {
         GlassPanel(
             shape: glassRect(24),
-            tint: Color.black.opacity(0.048),
-            heavy: true,
             surface: AnyView(aura())
         ) {
             VStack {
@@ -95,7 +93,6 @@ struct StatusBadge: View {
     var body: some View {
         GlassPanel(
             shape: glassCapsule,
-            tint: NexColors.glassTintLight,
             surface: AnyView(
                 PhaseTimeline(cyclesPerSecond: pulsing ? 0.8 : 0) { phase in
                     ZStack {
@@ -151,7 +148,6 @@ struct GlassLevelBar: View {
     var body: some View {
         GlassPanel(
             shape: glassCapsule,
-            tint: Color.black.opacity(0.08),
             surface: AnyView(
                 GeometryReader { proxy in
                     let h = proxy.size.height
@@ -223,7 +219,6 @@ struct TemperatureTimeline: View {
     var body: some View {
         GlassPanel(
             shape: glassRect(22),
-            tint: NexColors.glassTintLight,
             interactive: true,
             surface: AnyView(
                 TemperatureChart(history: history, target: target, color: color, live: live)
@@ -348,7 +343,6 @@ struct ScheduleStrip: View {
 
         GlassPanel(
             shape: glassRect(20),
-            tint: NexColors.glassTintLight,
             surface: AnyView(
                 GeometryReader { proxy in
                     let size = proxy.size

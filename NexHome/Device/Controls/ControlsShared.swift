@@ -1,6 +1,7 @@
 import SwiftUI
 
-let energyRate = 0.28
+/// Electricity price in $/kWh, set in Setup.
+var energyRate = 0.28
 
 // MARK: - Device info
 
@@ -47,7 +48,6 @@ struct SignalBars: View {
     var body: some View {
         GlassPanel(
             shape: glassCapsule,
-            tint: NexColors.glassTintDark,
             surface: AnyView(
                 GeometryReader { proxy in
                     let size = proxy.size
@@ -163,8 +163,6 @@ struct HourlyUsageBars: View {
 
         GlassPanel(
             shape: glassRect(20),
-            tint: NexColors.glassTintDark,
-            accent: accent,
             interactive: true,
             surface: AnyView(UsageBars(history: history, grow: grow, accent: accent))
         ) {
@@ -260,7 +258,6 @@ struct ScheduleTimeline: View {
 
         GlassPanel(
             shape: glassRect(20),
-            tint: NexColors.glassTintDark,
             surface: AnyView(
                 ScheduleTrack(
                     on: Double(onHour) / 24,
@@ -373,9 +370,8 @@ private struct ScheduleTrack: View {
 
 // MARK: - Spectrum slider
 
-/// A glass capsule track filled with a colour gradient inside the glass, and a draggable glass thumb
-/// that sits over it. The thumb follows the model value with a liquid spring, swells while held and
-/// shines `thumbColor` onto its neighbours. Tapping the track jumps there.
+/// A colour-gradient track with a draggable thumb that turns to a clear glass lens while held, like
+/// the system slider's. Tapping the track jumps there.
 struct LiquidSpectrumSlider: View {
     let fraction: Double
     let colors: [Color]
@@ -387,9 +383,6 @@ struct LiquidSpectrumSlider: View {
     @State private var dragging = false
     @State private var startFraction: Double = 0
     @State private var lastTick = -1
-    @State private var frame: CGRect = .zero
-    @State private var token = LightToken()
-    @Environment(GlassLight.self) private var light: GlassLight?
 
     var body: some View {
         GeometryReader { proxy in
@@ -401,13 +394,6 @@ struct LiquidSpectrumSlider: View {
                     .fill(
                         LinearGradient(colors: colors, startPoint: .leading, endPoint: .trailing)
                     )
-                    .overlay(alignment: .top) {
-                        Capsule()
-                            .fill(Color.white.opacity(0.12))
-                            .frame(height: 12)
-                            .blendMode(.plusLighter)
-                    }
-                    .glassEffect(.regular, in: Capsule())
                     .frame(height: 30)
                     .contentShape(Capsule())
                     .onTapGesture { location in
@@ -417,17 +403,10 @@ struct LiquidSpectrumSlider: View {
                     }
 
                 Capsule()
-                    .fill(Color.white.opacity(dragging ? 0.3 : 0.85))
-                    .overlay {
-                        Capsule().fill(thumbColor.opacity(dragging ? 0.5 : 0.25))
-                    }
-                    .overlay {
-                        Capsule().strokeBorder(Color.white.opacity(0.6), lineWidth: 1)
-                    }
-                    .glassEffect(.regular.interactive(), in: Capsule())
+                    .fill(Color.white.opacity(dragging ? 0.08 : 1))
                     .frame(width: thumbWidth, height: 34)
+                    .glassEffect(.clear.interactive(), in: Capsule())
                     .scaleEffect(dragging ? 1.25 : 1)
-                    .shadow(color: thumbColor.opacity(dragging ? 0.5 : 0.2), radius: 10)
                     .offset(x: CGFloat(clamp01(fraction)) * travel)
                     .gesture(
                         DragGesture(minimumDistance: 0)
@@ -436,9 +415,6 @@ struct LiquidSpectrumSlider: View {
                                     dragging = true
                                     startFraction = fraction
                                     lastTick = Int((fraction * 24).rounded())
-                                    light?.begin(token, at: globalPoint(value.location), color: thumbColor)
-                                } else {
-                                    light?.move(token, to: globalPoint(value.location))
                                 }
                                 let next = clamp01(
                                     startFraction + Double(value.translation.width / travel)
@@ -452,20 +428,14 @@ struct LiquidSpectrumSlider: View {
                             }
                             .onEnded { _ in
                                 dragging = false
-                                light?.end(token)
                             }
                     )
             }
             .frame(width: width, height: 48)
         }
         .frame(height: 48)
-        .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { frame = $0 }
         .animation(dragging ? nil : GlassMotion.blob, value: fraction)
         .animation(GlassMotion.release, value: dragging)
-    }
-
-    private func globalPoint(_ local: CGPoint) -> CGPoint {
-        CGPoint(x: frame.minX + local.x, y: frame.minY + local.y)
     }
 }
 
@@ -478,7 +448,7 @@ struct ActivityRow: View {
     var symbol: String?
 
     var body: some View {
-        GlassPanel(shape: glassRect(18), tint: NexColors.glassTintLight) {
+        GlassPanel(shape: glassRect(18)) {
             HStack(spacing: 12) {
                 Image(systemName: symbol ?? activitySymbol(event.label))
                     .font(.system(size: 15, weight: .semibold))

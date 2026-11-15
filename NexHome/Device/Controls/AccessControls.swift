@@ -91,8 +91,6 @@ struct AlarmSection<Content: View>: View {
     var body: some View {
         GlassPanel(
             shape: glassRect(28),
-            tint: NexColors.glassTintDark,
-            heavy: true,
             surface: AnyView(NexColors.red.opacity(wash * (0.1 + 0.22 * pulse)))
         ) {
             VStack(alignment: .leading, spacing: 14) {
@@ -200,7 +198,6 @@ struct LockControls: View {
             GlassSection(title: "Door sensor", symbol: "door.left.hand.open", accent: accent) {
                 GlassPanel(
                     shape: glassRect(22),
-                    tint: NexColors.glassTintLight,
                     surface: AnyView(
                         DoorPlan(color: stateColor, unlatch: locked ? 0 : 1, swing: ajar ? 1 : 0)
                             .animation(.spring(response: 0.574, dampingFraction: 0.45), value: ajar)
@@ -356,7 +353,6 @@ private struct GuestAccessSection: View {
                     accent: accent
                 ) {
                     LiquidButton(
-                        surfaceColor: Color.white.opacity(0.08),
                         action: { device.guestAccess.removeAll { $0 == entry } }
                     ) {
                         NexText("Revoke", .label).lineLimit(1)
@@ -598,7 +594,6 @@ struct GarageControls: View {
                         }
                     } else {
                         LiquidButton(
-                            surfaceColor: Color.white.opacity(0.08),
                             action: { device.obstructionDetected = true }
                         ) {
                             NexText("Test", .label).lineLimit(1)
@@ -1047,7 +1042,6 @@ struct SecurityPanelControls: View {
                         VStack(spacing: 0) {
                             Text("\(device.exitCountdownSeconds)")
                                 .font(NexType.numeric.font)
-                                .tracking(NexType.numeric.tracking)
                                 .foregroundStyle(stateColor)
                                 .lineLimit(1)
                             NexText("seconds to leave", .caption, color: NexColors.secondary)

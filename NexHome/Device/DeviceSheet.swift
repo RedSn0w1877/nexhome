@@ -1,93 +1,83 @@
 import SwiftUI
 
-/// The universal full-screen device sheet.
-///
-/// - Backdrop: the app wallpaper blurred and dimmed, blooming in. Every glass surface in the sheet
-///   refracts that scrim rather than the raw wallpaper, which is what gave the Android build its
-///   layered look.
-/// - Hero header: a glass panel with a glowing icon orb, the name, room · type, the live status and
-///   a master power toggle for the kinds that have one.
-/// - Body: the category's controls in a vertical scroll view.
-/// - Swipe down when scrolled to the top: the sheet follows the finger with rubber banding and
-///   dismisses past a threshold, otherwise springs back.
+/// The device sheet: a system sheet over the owner's wallpaper, with a hero card (icon badge, name,
+/// room · type, live status, master power) and the device's controls below. The toolbar holds the
+/// standard close button and a menu to favourite, rename, move or remove the device.
 struct DeviceSheet: View {
     @Bindable var device: Device
-    let onClose: () -> Void
 
-    @State private var enter: Double = 0
-    @State private var dragOffset: CGFloat = 0
-    @State private var atTop = true
-    @State private var dismissing = false
+    @Environment(DeviceRepository.self) private var repository
+    @Environment(HomeSettings.self) private var settings
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var renaming = false
+    @State private var draftName = ""
+    @State private var confirmingRemove = false
 
     private var accent: Color { deviceAccent(device.type) }
 
     var body: some View {
-        GeometryReader { proxy in
-            let height = max(proxy.size.height, 1)
-            let fade = clamp01(1 - Double(dragOffset) / (Double(height) * 0.7)) * enter
-
-            ZStack(alignment: .top) {
-                // Blurred, dimmed wallpaper scrim.
-                Rectangle()
-                    .fill(.ultraThinMaterial)
-                    .opacity(fade)
-                    .overlay(Color.black.opacity(0.12 * fade))
-                    .ignoresSafeArea()
-
-                ScrollView {
-                    VStack(spacing: 16) {
-                        header
-                        DeviceControls(device: device)
-                    }
-                    .padding(.horizontal, 20)
-                    .padding(.top, 64)
-                    .padding(.bottom, 48)
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: 16) {
+                    header
+                    DeviceControls(device: device)
                 }
-                .scrollIndicators(.hidden)
-                .onScrollGeometryChange(for: CGFloat.self) { geometry in
-                    geometry.contentOffset.y + geometry.contentInsets.top
-                } action: { _, offset in
-                    atTop = offset <= 1
-                }
-
-                closeButton
+                .padding(.horizontal, 20)
+                .padding(.top, 4)
+                .padding(.bottom, 48)
             }
-            .offset(y: dragOffset + CGFloat(1 - enter) * 96)
-            .opacity(enter)
-            .simultaneousGesture(sheetDrag(height: height))
+            .scrollIndicators(.hidden)
+            .navigationTitle(device.type.label)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) { manageMenu }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button(role: .close) { dismiss() }
+                }
+            }
         }
-        .task {
-            withAnimation(GlassMotion.enter) { enter = 1 }
+        .presentationDetents([.large])
+        .presentationDragIndicator(.visible)
+        .presentationBackground {
+            AmbientBackdrop(theme: settings.theme, customImage: settings.customImage)
         }
-        // Swallow every touch that lands on the sheet so nothing reaches the screen behind.
-        .contentShape(Rectangle())
+        .alert("Rename Device", isPresented: $renaming) {
+            TextField("Name", text: $draftName)
+            Button("Cancel", role: .cancel) {}
+            Button("Save") { repository.rename(device, to: draftName) }
+        }
+        .confirmationDialog(
+            "Remove \(device.name)?",
+            isPresented: $confirmingRemove,
+            titleVisibility: .visible
+        ) {
+            Button("Remove Device", role: .destructive) {
+                repository.remove(device)
+                dismiss()
+            }
+        } message: {
+            Text(
+                repository.isCustom(device)
+                    ? "This device was added by hand and will be deleted."
+                    : "You can bring it back from Setup › Manage Devices."
+            )
+        }
+        // Favourites can also be flipped inside the controls; persist whatever it ends up as.
+        .onDisappear { repository.setFavorite(device, device.isFavorite) }
     }
 
     // MARK: - Header
 
     private var header: some View {
-        GlassPanel(
-            shape: glassRect(32),
-            tint: NexColors.glassTintDark,
-            heavy: true,
-            surface: AnyView(
-                AccentWash(
-                    color: accent,
-                    center: UnitPoint(x: 0.16, y: 0.18),
-                    radiusFraction: 0.85,
-                    amount: device.isOn ? 0.12 : 0
-                )
-                .animation(GlassMotion.glow, value: device.isOn)
-            )
-        ) {
+        GlassPanel(shape: glassRect(32)) {
             VStack(alignment: .leading, spacing: 16) {
                 HStack(spacing: 16) {
                     GlassIconOrb(
                         symbol: device.type.symbol,
                         accent: accent,
                         size: 64,
-                        glow: device.isOn ? 1 : 0,
-                        iconTint: .white
+                        glow: isDeviceActive(device) ? 1 : 0
                     )
                     VStack(alignment: .leading, spacing: 2) {
                         NexText(device.name, .title).lineLimit(2)
@@ -100,7 +90,6 @@ struct DeviceSheet: View {
                     }
                     Spacer(minLength: 0)
                 }
-                .padding(.trailing, 52)
 
                 HStack(spacing: 12) {
                     VStack(alignment: .leading, spacing: 2) {
@@ -110,6 +99,7 @@ struct DeviceSheet: View {
                             color: device.isOn ? NexColors.primary : NexColors.secondary
                         )
                         .lineLimit(1)
+                        .contentTransition(.numericText())
                         NexText(
                             device.isOnline
                                 ? "Online · signal \(device.signalStrength)/4"
@@ -130,48 +120,36 @@ struct DeviceSheet: View {
         }
     }
 
-    private var closeButton: some View {
-        HStack {
-            Spacer()
-            LiquidButton(surfaceColor: Color.white.opacity(0.08), action: { dismiss(velocity: 0) }) {
-                Image(systemName: "xmark")
-                    .font(.system(size: 17, weight: .semibold))
-                    .foregroundStyle(NexColors.primary)
-            }
-        }
-        .padding(.top, 8)
-        .padding(.trailing, 20)
-    }
+    // MARK: - Manage menu
 
-    // MARK: - Swipe to dismiss
-
-    private func sheetDrag(height: CGFloat) -> some Gesture {
-        DragGesture(minimumDistance: 12)
-            .onChanged { value in
-                guard atTop, !dismissing, value.translation.height > 0 else { return }
-                let rubberRange = height * 0.5
-                dragOffset = rubberRange * rubberBand(value.translation.height / rubberRange)
+    private var manageMenu: some View {
+        Menu {
+            Button(
+                device.isFavorite ? "Remove from Favorites" : "Add to Favorites",
+                systemImage: device.isFavorite ? "star.slash" : "star"
+            ) {
+                repository.setFavorite(device, !device.isFavorite)
             }
-            .onEnded { value in
-                guard !dismissing else { return }
-                if dragOffset > 120 || value.predictedEndTranslation.height > 400 {
-                    dismiss(velocity: value.predictedEndTranslation.height)
-                } else {
-                    withAnimation(.spring(response: 0.363, dampingFraction: 0.55)) { dragOffset = 0 }
+            Button("Rename…", systemImage: "pencil") {
+                draftName = device.name
+                renaming = true
+            }
+            Menu("Move to Room", systemImage: "arrow.right.square") {
+                Picker(
+                    "Room",
+                    selection: Binding(get: { device.room }, set: { repository.move(device, to: $0) })
+                ) {
+                    ForEach(Room.allCases) { room in
+                        Label(room.displayName, systemImage: room.symbol).tag(room)
+                    }
                 }
             }
-    }
-
-    private func dismiss(velocity: CGFloat) {
-        guard !dismissing else { return }
-        dismissing = true
-        withAnimation(.easeOut(duration: 0.22)) {
-            dragOffset = 900
-            enter = 0
-        }
-        Task { @MainActor in
-            try? await Task.sleep(for: .milliseconds(200))
-            onClose()
+            Divider()
+            Button("Remove Device…", systemImage: "trash", role: .destructive) {
+                confirmingRemove = true
+            }
+        } label: {
+            Label("Manage", systemImage: "ellipsis")
         }
     }
 }

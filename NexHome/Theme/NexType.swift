@@ -1,57 +1,38 @@
 import SwiftUI
 
-/// NexHome text style tokens. The Android build hand-rolled these on top of `BasicText`; here they
-/// are `Font` + tracking pairs applied through the `nexType(_:)` modifier.
+/// NexHome text styles, mapped onto the system text styles so every label follows Dynamic Type.
 enum NexType {
     case display, headline, title, body, bodyStrong, label, caption, numeric
 
     var font: Font {
         switch self {
-        case .display: return .system(size: 40, weight: .semibold)
-        case .headline: return .system(size: 28, weight: .semibold)
-        case .title: return .system(size: 20, weight: .semibold)
-        case .body: return .system(size: 15, weight: .regular)
-        case .bodyStrong: return .system(size: 15, weight: .medium)
-        case .label: return .system(size: 13, weight: .medium)
-        case .caption: return .system(size: 11, weight: .medium)
-        case .numeric: return .system(size: 48, weight: .light).monospacedDigit()
+        case .display: return .system(.largeTitle, weight: .bold)
+        case .headline: return .system(.title, weight: .bold)
+        case .title: return .system(.title3, weight: .semibold)
+        case .body: return .system(.subheadline)
+        case .bodyStrong: return .system(.subheadline, weight: .semibold)
+        case .label: return .system(.footnote, weight: .medium)
+        case .caption: return .system(.caption2, weight: .medium)
+        case .numeric: return .system(size: 48, weight: .light, design: .rounded).monospacedDigit()
         }
     }
 
-    var tracking: CGFloat {
-        switch self {
-        case .display: return -1
-        case .headline: return -0.4
-        case .title: return -0.2
-        case .body, .bodyStrong: return 0
-        case .label: return 0
-        case .caption: return 0.2
-        case .numeric: return -1.5
-        }
-    }
+    /// Tabular-figure variant for live numbers that must not jitter.
+    var monospacedFont: Font { font.monospacedDigit() }
 }
 
 extension View {
-    /// Applies a NexHome type token (font + tracking) and a foreground colour.
+    /// Applies a NexHome text style and a foreground colour.
     func nexType(_ style: NexType, color: Color = NexColors.primary) -> some View {
         self
             .font(style.font)
-            .tracking(style.tracking)
             .foregroundStyle(color)
     }
 }
 
-/// Convenience: a `Text` already carrying a NexHome type token.
-func NexText(_ string: String, _ style: NexType = .body, color: Color = NexColors.primary) -> some View {
+/// A `Text` carrying a NexHome text style.
+func NexText(_ string: String, _ style: NexType = .body, color: Color = NexColors.primary) -> Text {
     Text(string)
         .font(style.font)
-        .tracking(style.tracking)
         .foregroundStyle(color)
-        // Clear glass lets the wallpaper through, so give text a faint lift for legibility.
-        .shadow(color: .black.opacity(0.28), radius: 1.5, y: 0.5)
-}
-
-/// Tabular-figure variants used for live numbers that must not jitter.
-extension NexType {
-    var monospacedFont: Font { font.monospacedDigit() }
 }

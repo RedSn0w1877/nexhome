@@ -2,33 +2,6 @@ import SwiftUI
 
 // Shared building blocks of the NexHome screens.
 
-/// A large screen title with an optional subtitle and a leading slot (e.g. a back button).
-struct ScreenTitle<Leading: View>: View {
-    let title: String
-    var subtitle: String?
-    @ViewBuilder var leading: () -> Leading
-
-    var body: some View {
-        HStack(spacing: 14) {
-            leading()
-            VStack(alignment: .leading, spacing: 2) {
-                NexText(title, .headline).lineLimit(1)
-                if let subtitle {
-                    NexText(subtitle, .label, color: NexColors.secondary).lineLimit(2)
-                }
-            }
-            Spacer(minLength: 0)
-        }
-        .padding(.vertical, 4)
-    }
-}
-
-extension ScreenTitle where Leading == EmptyView {
-    init(_ title: String, subtitle: String? = nil) {
-        self.init(title: title, subtitle: subtitle, leading: { EmptyView() })
-    }
-}
-
 /// Uppercase section caption with an optional glass capsule action ("See all ›").
 struct ScreenSectionLabel: View {
     let title: String
@@ -37,15 +10,12 @@ struct ScreenSectionLabel: View {
 
     var body: some View {
         HStack {
-            NexText(title.uppercased(), .caption, color: NexColors.secondary).lineLimit(1)
+            NexText(title.uppercased(), .caption, color: NexColors.secondary)
+                .lineLimit(1)
+                .accessibilityAddTraits(.isHeader)
             Spacer(minLength: 8)
             if let action, let onAction {
-                GlassPanel(
-                    shape: glassCapsule,
-                    tint: NexColors.glassTintLight,
-                    pressScale: 1.12,
-                    action: onAction
-                ) {
+                Button(action: onAction) {
                     HStack(spacing: 2) {
                         NexText(action, .label).lineLimit(1)
                         Image(systemName: "chevron.right")
@@ -54,8 +24,10 @@ struct ScreenSectionLabel: View {
                     }
                     .padding(.leading, 12)
                     .padding(.trailing, 8)
-                    .padding(.vertical, 6)
+                    .frame(minHeight: 32)
+                    .glassControl(Capsule())
                 }
+                .buttonStyle(GlassControlButtonStyle())
             }
         }
         .padding(.top, 6)
@@ -71,16 +43,12 @@ struct GlassStatPill: View {
     var action: (() -> Void)?
 
     var body: some View {
-        GlassPanel(
-            shape: glassRect(20),
-            tint: NexColors.glassTintLight,
-            accent: accent,
-            interactive: true,
-            pressScale: 1.1,
-            action: action
-        ) {
+        GlassPanel(shape: glassRect(20), action: action) {
             VStack(alignment: .leading, spacing: 2) {
-                NexText(value, .title, color: accent).lineLimit(1).minimumScaleFactor(0.7)
+                NexText(value, .title, color: accent)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+                    .contentTransition(.numericText())
                 HStack(spacing: 4) {
                     if let symbol {
                         Image(systemName: symbol)
@@ -95,6 +63,7 @@ struct GlassStatPill: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, 12)
             .padding(.vertical, 10)
+            .accessibilityElement(children: .combine)
         }
     }
 }

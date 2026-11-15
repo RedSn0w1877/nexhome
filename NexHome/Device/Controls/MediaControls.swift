@@ -180,10 +180,6 @@ private struct MediaArtwork: View {
 
         GlassPanel(
             shape: glassRect(tv ? 22 : 30),
-            tint: .clear,
-            accent: glow,
-            heavy: true,
-            pressScale: 1.04,
             action: action,
             surface: AnyView(
                 ZStack {
@@ -320,7 +316,7 @@ private struct MediaBadge: View {
     var dot: Color?
 
     var body: some View {
-        GlassPanel(shape: glassCapsule, tint: Color.black.opacity(0.112)) {
+        GlassPanel(shape: glassCapsule) {
             HStack(spacing: 6) {
                 if let dot {
                     Circle().fill(dot).frame(width: 7)
@@ -333,7 +329,7 @@ private struct MediaBadge: View {
     }
 }
 
-/// A round glass transport button that floods with `accent` while lit and pulses to the beat.
+/// A round glass transport button, filled with `accent` while lit, pulsing to the beat.
 struct MediaOrb: View {
     let symbol: String
     var size: CGFloat = 50
@@ -346,21 +342,16 @@ struct MediaOrb: View {
     var body: some View {
         PhaseTimeline(cyclesPerSecond: pulsing ? 1 / 2.4 : 0) { phase in
             let beat = pulsing ? mediaBeat(phase) : 0
-            GlassPanel(
-                shape: glassCircle,
-                tint: Color.black.opacity(0.064),
-                accent: accent,
-                pressScale: GlassMotion.buttonPressScale,
-                action: action,
-                surface: AnyView(accent.opacity(lit ? 0.45 : 0))
-            ) {
+            Button(action: action) {
                 Image(systemName: symbol)
                     .font(.system(size: size * 0.44, weight: .semibold))
                     .foregroundStyle(tint)
+                    .contentTransition(.symbolEffect(.replace))
                     .frame(width: size, height: size)
+                    .glassControl(Circle(), tint: lit ? accent : nil)
             }
+            .buttonStyle(GlassControlButtonStyle())
             .scaleEffect(1 + 0.05 * beat)
-            .shadow(color: accent.opacity(lit ? 0.45 : 0), radius: 14)
         }
     }
 }
@@ -381,8 +372,6 @@ private struct MediaScrubber: View {
             let width = max(proxy.size.width, 1)
             GlassPanel(
                 shape: glassCapsule,
-                tint: Color.black.opacity(0.088),
-                accent: trackColor,
                 interactive: true,
                 surface: AnyView(
                     MediaWaveform(
@@ -551,7 +540,7 @@ private struct MediaTvHome: View {
 
     var body: some View {
         let rows = mediaTvApps.count / mediaTvColumns
-        GlassPanel(shape: glassRect(22), tint: Color.black.opacity(0.096), heavy: true) {
+        GlassPanel(shape: glassRect(22)) {
             GeometryReader { proxy in
                 let gap: CGFloat = 10
                 let pad: CGFloat = 12
@@ -605,7 +594,7 @@ private struct MediaDpad: View {
     let onOk: () -> Void
 
     var body: some View {
-        GlassPanel(shape: glassCircle, tint: Color.black.opacity(0.08), heavy: true) {
+        GlassPanel(shape: glassCircle) {
             ZStack {
                 DpadArrow(symbol: "chevron.up", accent: accent) { onMove(0, -1) }
                     .offset(y: -78)
@@ -630,9 +619,6 @@ private struct DpadArrow: View {
     var body: some View {
         GlassPanel(
             shape: glassCircle,
-            tint: Color.white.opacity(0.08),
-            accent: accent,
-            pressScale: GlassMotion.buttonPressScale,
             action: action
         ) {
             Image(systemName: symbol)
@@ -734,7 +720,6 @@ private struct MediaLevelMeter: View {
     var body: some View {
         GlassPanel(
             shape: glassRect(20),
-            tint: Color.black.opacity(0.096),
             surface: AnyView(
                 PhaseTimeline(cyclesPerSecond: active ? 1 / 2.4 : 0) { phase in
                     GeometryReader { proxy in
@@ -941,8 +926,6 @@ private struct MediaEqCurve: View {
     var body: some View {
         GlassPanel(
             shape: glassRect(22),
-            tint: NexColors.glassTintLight,
-            accent: accent,
             interactive: true,
             surface: AnyView(
                 PhaseTimeline(cyclesPerSecond: active ? 1 / 2.4 : 0) { phase in
@@ -1185,7 +1168,7 @@ private struct MediaConstellation: View {
     let accent: Color
 
     var body: some View {
-        GlassPanel(shape: glassRect(22), tint: Color.black.opacity(0.072), heavy: true) {
+        GlassPanel(shape: glassRect(22)) {
             GeometryReader { proxy in
                 let size = proxy.size
                 let center = CGPoint(x: size.width / 2, y: size.height / 2)
@@ -1280,7 +1263,6 @@ private struct MediaArtChip: View {
     var body: some View {
         GlassPanel(
             shape: glassRect(12),
-            tint: .clear,
             surface: AnyView(
                 LinearGradient(
                     colors: [

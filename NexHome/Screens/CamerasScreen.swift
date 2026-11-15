@@ -16,8 +16,6 @@ struct CamerasScreen: View {
 
         ScrollView {
             LazyVStack(spacing: 12) {
-                ScreenTitle("Cameras", subtitle: "\(cameras.count) live feeds across the property")
-
                 HStack(spacing: 10) {
                     GlassStatPill(
                         value: "\(recording)",
@@ -57,6 +55,10 @@ struct CamerasScreen: View {
             .padding(.vertical, 8)
         }
         .scrollIndicators(.hidden)
+        .wallpaperBackground()
+        .navigationTitle("Cameras")
+        .navigationSubtitle("\(cameras.count) live feeds across the property")
+        .toolbar { HomeToolbar() }
     }
 }
 
@@ -71,9 +73,6 @@ private struct CameraTile: View {
 
         GlassPanel(
             shape: glassRect(hero ? 30 : 24),
-            tint: NexColors.glassTint,
-            accent: accent,
-            pressScale: hero ? 1.035 : GlassMotion.tilePressScale,
             action: action
         ) {
             VStack(alignment: .leading, spacing: 0) {
@@ -112,7 +111,7 @@ private struct CameraTile: View {
                         }
                         Spacer()
                         if device.motionDetected && !device.privacyMode {
-                            FeedChip(tint: NexColors.red.opacity(0.38)) {
+                            FeedChip(tint: NexColors.red.opacity(0.6)) {
                                 Image(systemName: "figure.walk.motion")
                                     .font(.system(size: 11, weight: .semibold))
                                     .foregroundStyle(.white)

@@ -204,12 +204,10 @@ private struct ProgressRing<Center: View>: View {
     var body: some View {
         GlassPanel(
             shape: glassCircle,
-            tint: Color.black.opacity(0.064),
-            heavy: true,
             front: AnyView(
                 ZStack {
                     Circle()
-                        .strokeBorder(Color.white.opacity(0.14), lineWidth: 7)
+                        .strokeBorder(NexColors.track, lineWidth: 7)
                         .padding(8)
                     Circle()
                         .inset(by: 11.5)
@@ -222,7 +220,6 @@ private struct ProgressRing<Center: View>: View {
         ) {
             center().frame(width: 116, height: 116)
         }
-        .shadow(color: color.opacity(0.3 * progress), radius: 18)
     }
 }
 
@@ -286,8 +283,6 @@ private struct FridgeSheet: View {
             ) {
                 GlassPanel(
                     shape: glassRect(24),
-                    tint: Color.black.opacity(0.048),
-                    heavy: true,
                     surface: AnyView(FrostAura(warm: doorOpen ? 1 : 0))
                 ) {
                     HStack(spacing: 12) {
@@ -420,7 +415,6 @@ private struct FridgeCompartment: View {
         let fraction = clamp01((temp - range.lowerBound) / (range.upperBound - range.lowerBound))
         GlassPanel(
             shape: glassRect(20),
-            tint: color.opacity(open ? 0.05 : 0.12),
             surface: AnyView(
                 GeometryReader { proxy in
                     let h = proxy.size.height
@@ -499,7 +493,6 @@ private struct IceBin: View {
     var body: some View {
         GlassPanel(
             shape: glassRect(20),
-            tint: Color.black.opacity(0.064),
             surface: AnyView(
                 PhaseTimeline(cyclesPerSecond: on ? 0.45 : 0) { phase in
                     GeometryReader { proxy in
@@ -609,7 +602,6 @@ private struct OvenSheet: View {
                                     .lineLimit(1)
                                 Text("\(device.targetApplianceTempF.rounded0)°")
                                     .font(NexType.numeric.font)
-                                    .tracking(NexType.numeric.tracking)
                                     .foregroundStyle(NexColors.primary)
                                     .lineLimit(1)
                                 NexText(
@@ -766,7 +758,6 @@ private struct GrillSheet: View {
                                 NexText("GRATE", .caption, color: NexColors.secondary).lineLimit(1)
                                 Text("\(device.targetApplianceTempF.rounded0)°")
                                     .font(NexType.numeric.font)
-                                    .tracking(NexType.numeric.tracking)
                                     .foregroundStyle(NexColors.primary)
                                     .lineLimit(1)
                                 NexText(
@@ -1033,11 +1024,7 @@ private struct MicrowaveSheet: View {
                     VStack(spacing: 14) {
                         GlassPanel(
                             shape: glassCircle,
-                            tint: Color.black.opacity(0.056),
-                            accent: accent,
-                            heavy: true,
                             interactive: true,
-                            pressScale: GlassMotion.orbPressScale,
                             surface: AnyView(
                                 Turntable(
                                     color: accent,
@@ -1049,7 +1036,6 @@ private struct MicrowaveSheet: View {
                             VStack(spacing: 0) {
                                 Text(timeText)
                                     .font(NexType.numeric.font)
-                                    .tracking(NexType.numeric.tracking)
                                     .foregroundStyle(NexColors.primary)
                                     .lineLimit(1)
                                 NexText(
@@ -1599,7 +1585,6 @@ private struct LaundrySheet: View {
                 NexText(phaseLabel.uppercased(), .caption, color: NexColors.secondary).lineLimit(1)
                 Text("\(max(device.minutesRemaining, 0))")
                     .font(NexType.numeric.font)
-                    .tracking(NexType.numeric.tracking)
                     .foregroundStyle(NexColors.primary)
                     .lineLimit(1)
                 NexText(
@@ -1614,7 +1599,6 @@ private struct LaundrySheet: View {
                     .foregroundStyle(NexColors.tertiary)
                 Text("\(laundryProgramMinutes(device.type, device.program))")
                     .font(NexType.numeric.font)
-                    .tracking(NexType.numeric.tracking)
                     .foregroundStyle(NexColors.primary)
                     .lineLimit(1)
                 NexText("min cycle", .caption, color: NexColors.secondary).lineLimit(1)
@@ -1751,7 +1735,7 @@ private struct PhaseStrip: View {
 
     var body: some View {
         VStack(spacing: 6) {
-            GlassPanel(shape: glassCapsule, tint: Color.black.opacity(0.088)) {
+            GlassPanel(shape: glassCapsule) {
                 GeometryReader { proxy in
                     let width = proxy.size.width
                     HStack(spacing: 3) {
@@ -2089,7 +2073,7 @@ private struct VacuumMap: View {
 
     var body: some View {
         let cleaning = device.vacuumState == .cleaning
-        GlassPanel(shape: glassRect(24), tint: Color.black.opacity(0.08), heavy: true) {
+        GlassPanel(shape: glassRect(24)) {
             GeometryReader { proxy in
                 let inset: CGFloat = 14
                 let w = proxy.size.width - inset * 2
@@ -2148,7 +2132,6 @@ private struct VacuumMap: View {
                                 .fill(Color.white.opacity(0.9))
                                 .overlay { Circle().strokeBorder(accent, lineWidth: 3) }
                                 .frame(width: 22, height: 22)
-                                .glassEffect(.regular, in: Circle())
                         }
                     }
                     .position(toPoint(device.robotX, device.robotY))

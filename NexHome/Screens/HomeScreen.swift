@@ -1,77 +1,96 @@
 import SwiftUI
 
-/// Home: a greeting hero with glass stat pills, an alerts strip, a Control-Center module grid built
-/// from the kit (whole-home lights fader, climate dial, security hold orb), scene hold orbs, a
-/// rooms carousel, the whole-home energy panel with a 24 h sparkline and featured device cards.
+/// Home: a greeting hero with stat pills, an alerts strip, the Control Center modules (whole-home
+/// lights fader, climate dial, security hold orb), scenes, a rooms carousel, whole-home energy and
+/// featured devices. The owner can reorder and hide these sections in Setup.
 struct HomeScreen: View {
     let onRoomTap: (Room) -> Void
     let onDeviceTap: (Device) -> Void
     let onSeeAllRooms: () -> Void
 
     @Environment(DeviceRepository.self) private var repository
+    @Environment(HomeSettings.self) private var settings
 
     var body: some View {
+        let onCount = repository.devices.filter { $0.isOn }.count
+
         ScrollView {
             LazyVStack(spacing: 16) {
                 GreetingHero(alertCount: repository.alerts().count)
                     .padding(.horizontal, 20)
 
-                let alerts = repository.alerts()
-                if !alerts.isEmpty {
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 10) {
-                            ForEach(alerts) { device in
-                                AlertPill(device: device) { onDeviceTap(device) }
-                            }
-                        }
-                        .padding(.horizontal, 20)
-                        .padding(.vertical, 4)
-                    }
-                    .scrollClipDisabled()
+                ForEach(settings.visibleSections) { section in
+                    sectionView(section)
                 }
-
-                ScreenSectionLabel(title: "Control Center")
-                    .padding(.horizontal, 24)
-
-                ControlCenterGrid(onDeviceTap: onDeviceTap)
-                    .padding(.horizontal, 20)
-
-                ScenesSection()
-                    .padding(.horizontal, 20)
-
-                ScreenSectionLabel(title: "Rooms", action: "See all", onAction: onSeeAllRooms)
-                    .padding(.horizontal, 24)
-
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 12) {
-                        ForEach(repository.roomsWithDevices) { room in
-                            RoomCarouselTile(room: room) { onRoomTap(room) }
-                        }
-                    }
-                    .padding(.horizontal, 20)
-                    .padding(.vertical, 6)
-                }
-                .scrollClipDisabled()
-
-                EnergyPanel()
-                    .padding(.horizontal, 20)
-
-                ScreenSectionLabel(title: "Featured")
-                    .padding(.horizontal, 24)
-
-                LazyVGrid(
-                    columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible())],
-                    spacing: 12
-                ) {
-                    ForEach(featuredDevices(repository)) { device in
-                        DeviceCard(device: device, showRoom: true) { onDeviceTap(device) }
-                    }
-                }
-                .padding(.horizontal, 20)
             }
             .padding(.vertical, 8)
         }
         .scrollIndicators(.hidden)
+        .wallpaperBackground()
+        .navigationTitle(settings.homeName)
+        .navigationSubtitle("\(onCount) of \(repository.devices.count) devices on")
+        .toolbar { HomeToolbar() }
+    }
+
+    @ViewBuilder
+    private func sectionView(_ section: HomeSection) -> some View {
+        switch section {
+        case .alerts:
+            let alerts = repository.alerts()
+            if !alerts.isEmpty {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 10) {
+                        ForEach(alerts) { device in
+                            AlertPill(device: device) { onDeviceTap(device) }
+                        }
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 4)
+                }
+                .scrollClipDisabled()
+            }
+
+        case .controlCenter:
+            ScreenSectionLabel(title: "Control Center")
+                .padding(.horizontal, 24)
+            ControlCenterGrid(onDeviceTap: onDeviceTap)
+                .padding(.horizontal, 20)
+
+        case .scenes:
+            ScenesSection()
+                .padding(.horizontal, 20)
+
+        case .rooms:
+            ScreenSectionLabel(title: "Rooms", action: "See all", onAction: onSeeAllRooms)
+                .padding(.horizontal, 24)
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 12) {
+                    ForEach(repository.roomsWithDevices) { room in
+                        RoomCarouselTile(room: room) { onRoomTap(room) }
+                    }
+                }
+                .padding(.horizontal, 20)
+                .padding(.vertical, 6)
+            }
+            .scrollClipDisabled()
+
+        case .energy:
+            EnergyPanel()
+                .padding(.horizontal, 20)
+
+        case .featured:
+            ScreenSectionLabel(title: "Featured")
+                .padding(.horizontal, 24)
+            LazyVGrid(
+                columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible())],
+                spacing: 12
+            ) {
+                ForEach(featuredDevices(repository)) { device in
+                    DeviceCard(device: device, showRoom: true) { onDeviceTap(device) }
+                }
+            }
+            .padding(.horizontal, 20)
+        }
     }
 }
 
@@ -86,27 +105,7 @@ private struct GreetingHero: View {
         let watts = repository.totalPowerWatts()
         let scene = repository.activeScene
 
-        GlassPanel(
-            shape: glassRect(32),
-            tint: NexColors.glassTintDark,
-            heavy: true,
-            surface: AnyView(
-                ZStack {
-                    AccentWash(
-                        color: NexColors.violet,
-                        center: UnitPoint(x: 0.08, y: 0.05),
-                        radiusFraction: 1,
-                        amount: 0.26
-                    )
-                    AccentWash(
-                        color: NexColors.cyan,
-                        center: UnitPoint(x: 0.95, y: 0.95),
-                        radiusFraction: 0.8,
-                        amount: 0.16
-                    )
-                }
-            )
-        ) {
+        GlassPanel(shape: glassRect(32)) {
             VStack(alignment: .leading, spacing: 4) {
                 NexText(dateText.uppercased(), .caption, color: NexColors.tertiary).lineLimit(1)
                 NexText(greetingForNow(), .headline).lineLimit(1)
@@ -156,13 +155,7 @@ private struct AlertPill: View {
     let action: () -> Void
 
     var body: some View {
-        GlassPanel(
-            shape: glassCapsule,
-            tint: NexColors.red.opacity(0.12),
-            accent: NexColors.red,
-            pressScale: 1.1,
-            action: action
-        ) {
+        GlassPanel(shape: glassCapsule, glassTint: NexColors.red, action: action) {
             HStack(spacing: 10) {
                 GlassIconOrb(
                     symbol: device.type.symbol,
@@ -173,7 +166,7 @@ private struct AlertPill: View {
                 )
                 VStack(alignment: .leading, spacing: 0) {
                     NexText(device.name, .label).lineLimit(1)
-                    NexText(alertLabel(device), .caption, color: NexColors.red).lineLimit(1)
+                    NexText(alertLabel(device), .caption, color: NexColors.secondary).lineLimit(1)
                 }
             }
             .padding(.leading, 6)
@@ -216,7 +209,7 @@ private struct ModulePanel<Content: View>: View {
     @ViewBuilder var content: () -> Content
 
     var body: some View {
-        GlassPanel(shape: glassRect(30), tint: NexColors.glassTintDark, heavy: true) {
+        GlassPanel(shape: glassRect(30)) {
             VStack(spacing: 8) {
                 content()
             }
@@ -252,17 +245,15 @@ private struct ModuleOpenButton: View {
     let action: () -> Void
 
     var body: some View {
-        GlassPanel(
-            shape: glassCircle,
-            tint: NexColors.glassTintLight,
-            pressScale: GlassMotion.orbPressScale,
-            action: action
-        ) {
+        Button(action: action) {
             Image(systemName: "chevron.right")
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(NexColors.primary)
-                .frame(width: 30, height: 30)
+                .frame(width: 32, height: 32)
+                .glassControl(Circle())
         }
+        .buttonStyle(GlassControlButtonStyle())
+        .accessibilityLabel("Open")
     }
 }
 
@@ -437,8 +428,6 @@ private struct RoomCarouselTile: View {
 
         GlassPanel(
             shape: glassRect(26),
-            tint: NexColors.glassTint,
-            accent: accent,
             action: action,
             front: AnyView(
                 GlassFillBar(fraction: Double(onCount) / total, accent: accent, inset: 14)
@@ -476,7 +465,7 @@ private struct EnergyPanel: View {
         let history = repository.homeEnergyHistory
         let peak = history.max() ?? 0
 
-        GlassPanel(shape: glassRect(30), tint: NexColors.glassTintDark, heavy: true) {
+        GlassPanel(shape: glassRect(30)) {
             VStack(alignment: .leading, spacing: 14) {
                 HStack(spacing: 12) {
                     GlassIconOrb(
@@ -502,12 +491,9 @@ private struct EnergyPanel: View {
                     }
                 }
 
-                // Chart well: the sparkline is drawn inside its own glass surface.
+                // Chart well, inset into the panel.
                 GlassPanel(
                     shape: glassRect(22),
-                    tint: Color.black.opacity(0.064),
-                    interactive: true,
-                    pressScale: 1.03,
                     surface: AnyView(
                         EnergyChart(history: history, accent: accent)
                     )
@@ -531,7 +517,7 @@ private struct EnergyPanel: View {
                     GlassMetricTile(label: "Today kWh", value: todayKwh.fixed(1), accent: accent)
                     GlassMetricTile(
                         label: "Est. cost",
-                        value: "$" + (todayKwh * 0.28).fixed(2),
+                        value: "$" + (todayKwh * energyRate).fixed(2),
                         accent: NexColors.mint
                     )
                     GlassMetricTile(label: "Peak kW", value: peak.fixed(1), accent: NexColors.rose)

@@ -11,9 +11,8 @@ struct SegmentOption: Hashable {
     }
 }
 
-/// Draggable glass blob selector: tap an option or drag the blob across; it snaps to the nearest
-/// option with overshoot, swells while held and ticks a haptic per option crossed. The blob emits
-/// `accent` as light while held.
+/// A segmented selector with icon-over-label options. The selection is a tinted glass thumb, like
+/// the iOS tab bar's: tap an option, or drag the thumb across and it snaps to the nearest one.
 struct LiquidSegmented: View {
     let options: [SegmentOption]
     let selectedIndex: Int
@@ -23,15 +22,12 @@ struct LiquidSegmented: View {
     private var count: Int { max(options.count, 1) }
     private var hasSymbols: Bool { options.contains { $0.symbol != nil } }
     private var barHeight: CGFloat { hasSymbols ? 64 : 48 }
-    private var blobHeight: CGFloat { barHeight - 8 }
+    private var thumbHeight: CGFloat { barHeight - 8 }
 
-    @State private var blob: CGFloat = 0
+    @State private var thumb: CGFloat = 0
     @State private var dragging = false
-    @State private var startBlob: CGFloat = 0
+    @State private var startThumb: CGFloat = 0
     @State private var lastTick = 0
-    @State private var frame: CGRect = .zero
-    @State private var token = LightToken()
-    @Environment(GlassLight.self) private var light: GlassLight?
 
     var body: some View {
         GeometryReader { proxy in
@@ -39,90 +35,79 @@ struct LiquidSegmented: View {
             let optionWidth = max((width - 8) / CGFloat(count), 1)
 
             ZStack(alignment: .leading) {
-                // The bar.
-                GlassPanel(shape: glassCapsule, tint: NexColors.glassTintDark) {
-                    HStack(spacing: 0) {
-                        ForEach(Array(options.enumerated()), id: \.offset) { index, option in
-                            SegmentItem(option: option, tint: NexColors.secondary)
-                                .frame(width: optionWidth, height: blobHeight)
-                                .contentShape(Rectangle())
-                                .onTapGesture { select(index) }
-                        }
-                    }
-                    .padding(4)
-                    .frame(height: barHeight)
+                GlassPanel(shape: glassCapsule) {
+                    Color.clear.frame(width: width, height: barHeight)
                 }
 
-                // The draggable glass blob, with the selected option drawn in the accent on top.
-                ZStack {
-                    Capsule()
-                        .fill(accent.opacity(0.18))
-                        .glassEffect(.regular.interactive(), in: Capsule())
-                    if options.indices.contains(snappedIndex) {
-                        SegmentItem(option: options[snappedIndex], tint: .white)
+                Capsule()
+                    .fill(.clear)
+                    .frame(width: optionWidth, height: thumbHeight)
+                    .glassControl(Capsule(), tint: accent.opacity(0.7))
+                    .scaleEffect(dragging ? 1.06 : 1)
+                    .offset(x: 4 + thumb * optionWidth)
+
+                HStack(spacing: 0) {
+                    ForEach(Array(options.enumerated()), id: \.offset) { index, option in
+                        SegmentItem(
+                            option: option,
+                            tint: index == snappedIndex ? .white : NexColors.secondary
+                        )
+                        .frame(width: optionWidth, height: thumbHeight)
+                        .contentShape(Rectangle())
+                        .onTapGesture { select(index) }
+                        .accessibilityElement(children: .combine)
+                        .accessibilityAddTraits(.isButton)
+                        .accessibilityAddTraits(index == selectedIndex ? .isSelected : [])
                     }
                 }
-                .frame(width: optionWidth, height: blobHeight)
-                .overlay {
-                    Capsule().strokeBorder(Color.white.opacity(0.45), lineWidth: 0.8)
-                }
-                .scaleEffect(x: dragging ? 1.1 : 1, y: dragging ? 1.06 : 1)
-                .shadow(color: .black.opacity(dragging ? 0.2 : 0.1), radius: 12)
-                .offset(x: 4 + blob * optionWidth)
-                .gesture(
-                    DragGesture(minimumDistance: 0)
-                        .onChanged { value in
-                            if !dragging {
-                                dragging = true
-                                startBlob = blob
-                                lastTick = Int(blob.rounded())
-                                light?.begin(token, at: globalPoint(value.location), color: accent)
-                            } else {
-                                light?.move(token, to: globalPoint(value.location))
-                            }
-                            let next = clamp(
-                                startBlob + value.translation.width / optionWidth,
-                                0,
-                                CGFloat(count - 1)
-                            )
-                            blob = next
-                            let tick = Int(next.rounded())
-                            if tick != lastTick {
-                                lastTick = tick
-                                Haptics.tick()
-                            }
-                        }
-                        .onEnded { _ in
-                            dragging = false
-                            light?.end(token)
-                            let target = clamp(Int(blob.rounded()), 0, count - 1)
-                            withAnimation(GlassMotion.blob) { blob = CGFloat(target) }
-                            if target != selectedIndex { onSelect(target) }
-                        }
-                )
+                .padding(.horizontal, 4)
+                .allowsHitTesting(!dragging)
             }
             .frame(width: width, height: barHeight)
+            .gesture(
+                DragGesture(minimumDistance: 6)
+                    .onChanged { value in
+                        if !dragging {
+                            dragging = true
+                            startThumb = thumb
+                            lastTick = Int(thumb.rounded())
+                        }
+                        let next = clamp(
+                            startThumb + value.translation.width / optionWidth,
+                            0,
+                            CGFloat(count - 1)
+                        )
+                        thumb = next
+                        let tick = Int(next.rounded())
+                        if tick != lastTick {
+                            lastTick = tick
+                            Haptics.tick()
+                        }
+                    }
+                    .onEnded { _ in
+                        dragging = false
+                        let target = clamp(Int(thumb.rounded()), 0, count - 1)
+                        withAnimation(GlassMotion.blob) { thumb = CGFloat(target) }
+                        if target != selectedIndex { onSelect(target) }
+                    }
+            )
         }
         .frame(height: barHeight)
-        .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { frame = $0 }
-        .onAppear { blob = CGFloat(clamp(selectedIndex, 0, count - 1)) }
+        .onAppear { thumb = CGFloat(clamp(selectedIndex, 0, count - 1)) }
         .onChange(of: selectedIndex) { _, newValue in
             guard !dragging else { return }
-            withAnimation(GlassMotion.blob) { blob = CGFloat(clamp(newValue, 0, count - 1)) }
+            withAnimation(GlassMotion.blob) { thumb = CGFloat(clamp(newValue, 0, count - 1)) }
         }
+        .animation(GlassMotion.press, value: dragging)
     }
 
-    private var snappedIndex: Int { clamp(Int(blob.rounded()), 0, count - 1) }
+    private var snappedIndex: Int { clamp(Int(thumb.rounded()), 0, count - 1) }
 
     private func select(_ index: Int) {
         guard index != selectedIndex else { return }
         Haptics.tick()
-        withAnimation(GlassMotion.blob) { blob = CGFloat(index) }
+        withAnimation(GlassMotion.blob) { thumb = CGFloat(index) }
         onSelect(index)
-    }
-
-    private func globalPoint(_ local: CGPoint) -> CGPoint {
-        CGPoint(x: frame.minX + local.x, y: frame.minY + local.y)
     }
 }
 

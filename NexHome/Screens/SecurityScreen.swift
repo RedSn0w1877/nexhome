@@ -22,8 +22,6 @@ struct SecurityScreen: View {
 
         ScrollView {
             LazyVStack(spacing: 12) {
-                ScreenTitle("Security", subtitle: "\(access.count) doors · \(sensors.count) sensors")
-
                 if let panel {
                     SecurityHero(panel: panel, onOpen: { onDeviceTap(panel) })
                 }
@@ -75,6 +73,10 @@ struct SecurityScreen: View {
             .padding(.vertical, 8)
         }
         .scrollIndicators(.hidden)
+        .wallpaperBackground()
+        .navigationTitle("Security")
+        .navigationSubtitle("\(access.count) doors · \(sensors.count) sensors")
+        .toolbar { HomeToolbar() }
     }
 }
 
@@ -91,24 +93,11 @@ private struct SecurityHero: View {
         let armed = state != .disarmed
         let triggered = state == .triggered
         let openZones = panel.securityZones.filter { $0.isOpen }.count
+        let heroTint: Color? = triggered
+            ? NexColors.red.opacity(0.4 + 0.6 * pulse)
+            : (armed ? accent.opacity(0.35) : nil)
 
-        GlassPanel(
-            shape: glassRect(32),
-            tint: NexColors.glassTintDark,
-            heavy: true,
-            surface: AnyView(
-                ZStack {
-                    AccentWash(
-                        color: accent,
-                        center: UnitPoint(x: 0.15, y: 0.2),
-                        radiusFraction: 1,
-                        amount: armed ? 0.3 : 0
-                    )
-                    NexColors.red.opacity(0.34 * pulse)
-                }
-                .animation(GlassMotion.glow, value: armed)
-            )
-        ) {
+        GlassPanel(shape: glassRect(32), glassTint: heroTint) {
             VStack(alignment: .leading, spacing: 16) {
                 HStack(spacing: 14) {
                     GlassIconOrb(

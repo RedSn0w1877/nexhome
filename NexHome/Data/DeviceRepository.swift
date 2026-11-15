@@ -36,10 +36,13 @@ enum HomeScene: Int, CaseIterable, Hashable, Identifiable, Sendable {
 }
 
 /// In-memory "house" of simulated devices. One instance lives for the app's lifetime.
+///
+/// The house is generated from a fixed seed, then the owner's edits from Setup (added, renamed,
+/// moved, removed and favourite devices) are replayed on top and saved back as they change.
 @MainActor
 @Observable
 final class DeviceRepository {
-    let devices: [Device]
+    private(set) var devices: [Device] = []
 
     /// The last scene applied with `apply(scene:)`, or nil.
     private(set) var activeScene: HomeScene?
@@ -47,24 +50,145 @@ final class DeviceRepository {
     /// Whole-home power in kW per hour for the last 24 hours (oldest first); the last sample is live.
     private(set) var homeEnergyHistory: [Double]
 
-    private let byId: [String: Device]
-    private let byKind: [ControlKind: [Device]]
-    let roomsWithDevices: [Room]
-    private let devicesByRoom: [Room: [Device]]
+    private var byId: [String: Device] = [:]
+    private var byKind: [ControlKind: [Device]] = [:]
+    private(set) var roomsWithDevices: [Room] = []
+    private var devicesByRoom: [Room: [Device]] = [:]
 
-    init(seed: UInt64 = 42) {
+    /// Generated devices the owner removed in Setup (restorable).
+    private(set) var removedDevices: [Device] = []
+    /// The owner's saved edits.
+    private var edits: DeviceEdits
+    private let editsKey: String
+
+    init(seed: UInt64 = 42, editsKey: String = "nexhome.deviceEdits") {
+        self.editsKey = editsKey
+        edits = DeviceEdits.load(key: editsKey)
         let generated = DeviceGenerator.generate(seed: seed)
-        devices = generated
-        byId = Dictionary(generated.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
-        byKind = Dictionary(grouping: generated, by: { $0.controlKind })
-        let grouped = Dictionary(grouping: generated, by: { $0.room })
-        devicesByRoom = grouped
-        roomsWithDevices = Room.allCases.filter { (grouped[$0]?.isEmpty == false) }
         homeEnergyHistory = (0..<24).map { hour in
             generated.reduce(0.0) { acc, device in
                 acc + (hour < device.powerHistory.count ? device.powerHistory[hour] : 0)
             } / 1000
         }
+        var house: [Device] = []
+        for device in generated {
+            if let name = edits.names[device.id] { device.name = name }
+            if let raw = edits.rooms[device.id], let room = Room(rawValue: raw) { device.room = room }
+            if let favorite = edits.favorites[device.id] { device.isFavorite = favorite }
+            if edits.removed.contains(device.id) {
+                removedDevices.append(device)
+            } else {
+                house.append(device)
+            }
+        }
+        for added in edits.added {
+            guard let type = DeviceType(rawValue: added.type),
+                  let room = Room(rawValue: added.room) else { continue }
+            let device = DeviceGenerator.makeDevice(id: added.id, name: added.name, type: type, room: room)
+            if let favorite = edits.favorites[device.id] { device.isFavorite = favorite }
+            house.append(device)
+        }
+        devices = house
+        reindex()
+    }
+
+    /// Rebuilds the lookup tables after the device list or a device's room changes.
+    private func reindex() {
+        byId = Dictionary(devices.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        byKind = Dictionary(grouping: devices, by: { $0.controlKind })
+        let grouped = Dictionary(grouping: devices, by: { $0.room })
+        devicesByRoom = grouped
+        roomsWithDevices = Room.allCases.filter { (grouped[$0]?.isEmpty == false) }
+    }
+
+    // MARK: - Setup: adding and customising devices
+
+    /// Whether `device` was added by hand in Setup (rather than generated with the house).
+    func isCustom(_ device: Device) -> Bool {
+        edits.added.contains { $0.id == device.id }
+    }
+
+    /// Adds a device by hand and returns it.
+    @discardableResult
+    func addDevice(name: String, type: DeviceType, room: Room) -> Device {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        let finalName = trimmed.isEmpty ? "\(room.displayName) \(type.label)" : trimmed
+        let id = "custom_\(UUID().uuidString.prefix(8).lowercased())_\(type.rawValue.lowercased())"
+        let device = DeviceGenerator.makeDevice(id: id, name: finalName, type: type, room: room)
+        edits.added.append(AddedDevice(id: id, name: finalName, type: type.rawValue, room: room.rawValue))
+        devices.append(device)
+        reindex()
+        save()
+        return device
+    }
+
+    func rename(_ device: Device, to name: String) {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, trimmed != device.name else { return }
+        device.name = trimmed
+        if let index = edits.added.firstIndex(where: { $0.id == device.id }) {
+            edits.added[index].name = trimmed
+        } else {
+            edits.names[device.id] = trimmed
+        }
+        save()
+    }
+
+    func move(_ device: Device, to room: Room) {
+        guard room != device.room else { return }
+        device.room = room
+        if let index = edits.added.firstIndex(where: { $0.id == device.id }) {
+            edits.added[index].room = room.rawValue
+        } else {
+            edits.rooms[device.id] = room.rawValue
+        }
+        reindex()
+        save()
+    }
+
+    func setFavorite(_ device: Device, _ favorite: Bool) {
+        device.isFavorite = favorite
+        edits.favorites[device.id] = favorite
+        save()
+    }
+
+    /// Removes a device. Hand-added devices are deleted; generated ones can be restored later.
+    func remove(_ device: Device) {
+        devices.removeAll { $0.id == device.id }
+        if let index = edits.added.firstIndex(where: { $0.id == device.id }) {
+            edits.added.remove(at: index)
+            edits.favorites[device.id] = nil
+        } else {
+            edits.removed.insert(device.id)
+            removedDevices.append(device)
+        }
+        reindex()
+        save()
+    }
+
+    /// Puts every removed generated device back in the house.
+    func restoreRemovedDevices() {
+        guard !removedDevices.isEmpty else { return }
+        devices.append(contentsOf: removedDevices)
+        removedDevices.removeAll()
+        edits.removed.removeAll()
+        reindex()
+        save()
+    }
+
+    /// Forgets every Setup edit and rebuilds the generated house.
+    func resetCustomizations() {
+        edits = DeviceEdits()
+        save()
+        let fresh = DeviceRepository(editsKey: editsKey)
+        devices = fresh.devices
+        removedDevices = []
+        activeScene = nil
+        reindex()
+    }
+
+    private func save() {
+        edits.save(key: editsKey)
     }
 
     func devices(in room: Room) -> [Device] { devicesByRoom[room] ?? [] }

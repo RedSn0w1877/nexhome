@@ -59,7 +59,6 @@ private struct EvChargerSheet: View {
                                     .lineLimit(1)
                                 Text("\(device.chargePercent)%")
                                     .font(NexType.numeric.font)
-                                    .tracking(NexType.numeric.tracking)
                                     .foregroundStyle(NexColors.primary)
                                     .lineLimit(1)
                                 HStack(spacing: 4) {
@@ -436,7 +435,6 @@ private struct BatteryPack: View {
             }
             GlassPanel(
                 shape: glassRect(14),
-                tint: Color.black.opacity(0.096),
                 surface: AnyView(
                     PhaseTimeline(cyclesPerSecond: charging ? 0.6 : 0) { phase in
                         GeometryReader { proxy in
@@ -793,11 +791,7 @@ private struct PumpImpeller: View {
     var body: some View {
         GlassPanel(
             shape: glassCircle,
-            tint: Color.black.opacity(0.064),
-            accent: color,
-            heavy: true,
             interactive: true,
-            pressScale: GlassMotion.orbPressScale,
             surface: AnyView(
                 PhaseTimeline(cyclesPerSecond: running ? 0.35 + 1.6 * speed : 0) { phase in
                     GeometryReader { proxy in
@@ -823,7 +817,7 @@ private struct PumpImpeller: View {
                 }
             )
         ) {
-            GlassPanel(shape: glassCircle, tint: Color.black.opacity(0.056), heavy: true) {
+            GlassPanel(shape: glassCircle) {
                 VStack(spacing: 0) {
                     Text("\(rpm)")
                         .font(NexType.title.font.monospacedDigit())
@@ -893,8 +887,6 @@ struct SprinklerControls: View {
                 } else {
                     GlassPanel(
                         shape: glassRect(24),
-                        tint: Color.black.opacity(0.056),
-                        heavy: true,
                         surface: AnyView(MistAura(color: statusColor, watering: watering))
                     ) {
                         VStack(spacing: 10) {
@@ -1186,8 +1178,6 @@ private struct ZoneTile: View {
 
         GlassPanel(
             shape: glassRect(22),
-            tint: NexColors.glassTintLight,
-            accent: accent,
             action: action,
             surface: AnyView(
                 PhaseTimeline(cyclesPerSecond: running ? 0.9 : 0) { phase in
@@ -1248,7 +1238,7 @@ private struct SequenceBar: View {
 
     var body: some View {
         let total = max(zones.reduce(0) { $0 + $1.durationMinutes }, 1)
-        GlassPanel(shape: glassCapsule, tint: Color.black.opacity(0.088)) {
+        GlassPanel(shape: glassCapsule) {
             GeometryReader { proxy in
                 HStack(spacing: 2) {
                     ForEach(zones) { zone in
@@ -1292,7 +1282,6 @@ private struct SoilMoistureGauge: View {
             }
             GlassPanel(
                 shape: glassCapsule,
-                tint: Color.black.opacity(0.088),
                 surface: AnyView(
                     GeometryReader { proxy in
                         let w = proxy.size.width
@@ -1337,7 +1326,6 @@ struct HourTimeline: View {
     var body: some View {
         GlassPanel(
             shape: glassRect(18),
-            tint: NexColors.glassTintDark,
             surface: AnyView(
                 GeometryReader { proxy in
                     let w = proxy.size.width

@@ -195,9 +195,6 @@ private struct MotionRadarStage: View {
     var body: some View {
         GlassPanel(
             shape: glassRect(24),
-            tint: Color.black.opacity(0.064),
-            accent: accent,
-            heavy: true,
             surface: AnyView(
                 PhaseTimeline(cyclesPerSecond: monitoring ? (motion ? 0.6 : 0.18) : 0) { phase in
                     GeometryReader { proxy in
@@ -397,9 +394,6 @@ private struct ContactDoorStage: View {
     var body: some View {
         GlassPanel(
             shape: glassRect(24),
-            tint: Color.black.opacity(0.056),
-            accent: accent,
-            heavy: true,
             surface: AnyView(
                 GeometryReader { proxy in
                     let w = proxy.size.width
@@ -682,9 +676,6 @@ private struct DetectorStage: View {
     var body: some View {
         GlassPanel(
             shape: glassRect(24),
-            tint: Color.black.opacity(0.064),
-            accent: statusColor,
-            heavy: true,
             surface: AnyView(
                 PhaseTimeline(cyclesPerSecond: danger ? 1.4 : 0.1) { phase in
                     GeometryReader { proxy in
@@ -721,7 +712,6 @@ private struct DetectorStage: View {
                 VStack(spacing: 0) {
                     Text(reading.fixed(1))
                         .font(NexType.numeric.font)
-                        .tracking(NexType.numeric.tracking)
                         .foregroundStyle(NexColors.primary)
                         .lineLimit(1)
                     NexText(isCo ? "ppm CO" : "µg/m³", .caption, color: NexColors.secondary)
@@ -911,9 +901,6 @@ private struct LeakStage: View {
     var body: some View {
         GlassPanel(
             shape: glassRect(24),
-            tint: Color.black.opacity(0.072),
-            accent: stateColor,
-            heavy: true,
             surface: AnyView(
                 PhaseTimeline(cyclesPerSecond: wet ? 0.8 : 0.16) { phase in
                     GeometryReader { proxy in
@@ -987,7 +974,6 @@ private struct ValvePanel: View {
     var body: some View {
         GlassPanel(
             shape: glassRect(20),
-            tint: NexColors.glassTintLight,
             surface: AnyView(
                 GeometryReader { proxy in
                     let w = proxy.size.width
@@ -1172,8 +1158,6 @@ private struct ClimateDialStage: View {
     var body: some View {
         GlassPanel(
             shape: glassRect(24),
-            tint: Color.black.opacity(0.056),
-            heavy: true,
             surface: AnyView(
                 ZStack {
                     LinearGradient(
@@ -1229,7 +1213,6 @@ private struct ComfortMap: View {
     var body: some View {
         GlassPanel(
             shape: glassRect(20),
-            tint: NexColors.glassTintLight,
             surface: AnyView(
                 GeometryReader { proxy in
                     let w = proxy.size.width
@@ -1302,7 +1285,7 @@ private struct GenericSensorSheet: View {
 
     var body: some View {
         GlassSection(title: "Reading", symbol: "sensor.fill", accent: accent) {
-            GlassPanel(shape: glassRect(24), tint: Color.black.opacity(0.056), heavy: true) {
+            GlassPanel(shape: glassRect(24)) {
                 VStack(spacing: 8) {
                     GlassIconOrb(
                         symbol: "sensor.fill",
@@ -1498,7 +1481,6 @@ private struct SensorLevelChart: View {
     var body: some View {
         GlassPanel(
             shape: glassRect(22),
-            tint: NexColors.glassTintLight,
             interactive: true,
             surface: AnyView(
                 GeometryReader { proxy in
