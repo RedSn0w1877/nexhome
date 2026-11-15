@@ -9,8 +9,11 @@ version, a native **SwiftUI** port of the original Android (Kotlin / Jetpack Com
   category: lights, plugs, thermostats/AC, water and pool heaters, fans/purifiers/humidity, locks,
   garage doors, the security panel, speakers/TVs/soundbars, cameras, kitchen and laundry appliances,
   the robot vacuum, EV charger, pool pump, sprinklers, sensors and blinds.
-- Built on Apple's **Liquid Glass** (`glassEffect`), so refraction and specular highlights are
-  the real system material rather than a shader imitation.
+- Built entirely on Apple's **Liquid Glass**: the system tab bar, navigation bars and toolbar
+  buttons, system sheets, and `glassEffect` for cards and controls. Nothing is a painted imitation.
+- **Setup** (the gear in any tab's toolbar): name the home, pick a wallpaper or photo, add devices
+  by hand, rename/move/favourite/remove devices, reorder and hide Home sections, haptics and the
+  electricity price. Edits are saved across launches.
 
 Requirements: **Xcode 27**, **iOS 27.0+**, iPhone (portrait).
 
@@ -69,10 +72,15 @@ xcodebuild build -project NexHome.xcodeproj -scheme NexHome \
 The project uses a file-system-synchronized group, so new Swift files under `NexHome/` are picked
 up automatically, with no project-file edits needed.
 
-### Testing hook
+### Testing hooks
 
-Launch with `-openKind <KIND>` to open the first device of a category straight away (CI uses
-this for screenshots). For example:
+CI uses launch arguments to screenshot screens without touching the simulator:
+
+- `-openKind <KIND>` opens the first device of a category.
+- `-startTab rooms|cameras|security` starts on that tab.
+- `-openSetup YES` opens Setup.
+
+For example:
 
 ```bash
 xcrun simctl launch booted com.nexhome.app -openKind THERMOSTAT_DIAL
@@ -86,19 +94,16 @@ Kinds: `TOGGLE`, `DIMMER`, `THERMOSTAT_DIAL`, `LOCK`, `GARAGE`, `CAMERA_FEED`, `
 
 ```
 NexHome/
-├── NexHomeApp.swift          App entry: repository + shared light state in the environment
+├── NexHomeApp.swift          App entry: repository, settings and router in the environment
 ├── Models/                   Device, DeviceType, Room and detail enums (Observation framework)
-├── Data/                     DeviceGenerator (procedural house) and DeviceRepository (simulation)
-├── Theme/                    Colour and type tokens, device palettes, the wallpaper
-├── Glass/                    The liquid-glass kit
-│   ├── GlassMotion.swift       Spring tokens (converted from the Compose springs)
-│   ├── GlassLight.swift        "Light spill": a held control shines its colour onto neighbours
-│   ├── GlassPress.swift        Swell, jelly and gliding-highlight touch response
-│   ├── GlassPanel.swift        The base glass surface, icon orbs, pills
-│   ├── GlassSection.swift      Sections, setting rows, metric tiles, sparklines
-│   ├── LiquidControls.swift    Button, toggle, slider, chips, colour orbs, stepper
-│   └── LiquidSegmented / LiquidDial / LiquidFader / LiquidHoldOrb
-├── Screens/                  Shell (top bar, glass tab bar) and the five screens
+├── Data/                     House generator, repository + saved Setup edits, HomeSettings
+├── Theme/                    System colours, Dynamic Type styles, device palettes, the wallpaper
+├── Glass/                    Components built on system Liquid Glass
+│   ├── GlassPanel.swift        The base surface (glass on the wallpaper, an inset fill inside it)
+│   ├── GlassSection.swift      Sections, Settings-style rows, metric tiles, sparklines
+│   ├── LiquidControls.swift    Glass buttons and chips, system toggle and slider, stepper
+│   └── LiquidSegmented / LiquidDial / LiquidFader / LiquidHoldOrb, motion, haptics
+├── Screens/                  TabView shell, the five screens, and Setup/
 ├── Device/                   Device card, device sheet, and one control file per category
 └── Components/               The simulated live camera feed
 ```
@@ -107,10 +112,11 @@ NexHome/
 
 - **SwiftUI rewrite, not a wrapper.** The Compose UI was rewritten in SwiftUI. Device state uses
   `@Observable`, so controls mutate the model directly, as the Compose snapshot state did.
-- **Native glass.** The Android build approximated glass with the Kyant0 Backdrop library
-  (refraction shaders, manual highlights, a gravity sensor for the specular angle). Here
-  `glassEffect` provides all of that. The kit keeps the app's own touch language on top: the swell
-  with a bouncy release, jelly stretch, gliding highlight and the cross-element light spill.
+- **Native glass, one layer.** The Android build approximated glass with the Kyant0 Backdrop
+  library. Here only the system material is used, the way Apple's apps use it: surfaces on the
+  wallpaper are glass, anything inside them is an inset fill (never glass on glass), and controls
+  (buttons, chips, thumbs, orbs) are interactive glass. Navigation is the system's: tab bar, large
+  titles, toolbars, sheets, context menus.
 - **SF Symbols** replace the Material icon set.
 - **Deterministic house.** The generator is seeded, so the house is the same on every launch. It
   uses a different random-number generator than Kotlin's, so individual devices differ from the
