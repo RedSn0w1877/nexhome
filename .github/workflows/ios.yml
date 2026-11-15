@@ -102,16 +102,26 @@ jobs:
           xcrun simctl install "$UDID" "$APP"
           mkdir -p build/screenshots
 
+          failed=""
           shoot() {
             local name="$1"; shift
             xcrun simctl terminate "$UDID" com.nexhome.app 2>/dev/null || true
             xcrun simctl launch "$UDID" com.nexhome.app "$@"
             sleep 10
-            if ! xcrun simctl spawn "$UDID" launchctl list | grep -q "com.nexhome.app"; then
+            # Write the list to a file first: grep -q closing a live pipe kills launchctl (SIGPIPE).
+            xcrun simctl spawn "$UDID" launchctl list > "$RUNNER_TEMP/launchctl.txt" || true
+            if grep -q "com.nexhome.app" "$RUNNER_TEMP/launchctl.txt"; then
+              xcrun simctl io "$UDID" screenshot "build/screenshots/$name.png"
+            else
               echo "::error::NexHome is not running after launch ($name)"
-              exit 1
+              failed="$failed $name"
+              for report in ~/Library/Logs/DiagnosticReports/NexHome*; do
+                [ -f "$report" ] || continue
+                echo "--- $report"
+                head -c 12000 "$report"
+                cp "$report" build/screenshots/ || true
+              done
             fi
-            xcrun simctl io "$UDID" screenshot "build/screenshots/$name.png"
           }
 
           shoot home
@@ -124,6 +134,10 @@ jobs:
           shoot media -openKind MEDIA_PLAYER
           shoot security -openKind SECURITY_PANEL
           ls -la build/screenshots
+          if [ -n "$failed" ]; then
+            echo "::error::Not running after launch:$failed"
+            exit 1
+          fi
 
       - name: Upload screenshots
         if: always()
