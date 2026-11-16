@@ -32,102 +32,16 @@ struct DeviceSetupIcon: View {
     }
 }
 
-// MARK: - Add
-
-/// Adds a device by hand: a live preview, then name, type and room.
-struct AddDeviceView: View {
-    @Environment(DeviceRepository.self) private var repository
-    @Environment(\.dismiss) private var dismiss
-
-    @State private var name = ""
-    @State private var type: DeviceType = .lamp
-    @State private var room: Room = .livingRoom
-    @State private var roomChosen = false
-    @FocusState private var nameFocused: Bool
-
-    private var placeholder: String { "\(room.displayName) \(type.label)" }
-
-    var body: some View {
-        Form {
-            Section {
-                HStack(spacing: 14) {
-                    DeviceSetupIcon(type: type, size: 48)
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(name.isEmpty ? placeholder : name)
-                            .font(.headline)
-                            .lineLimit(1)
-                        Text("\(room.displayName) · \(type.label)")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                            .lineLimit(1)
-                    }
-                }
-                .padding(.vertical, 6)
-                .animation(GlassMotion.glow, value: type)
-            }
-
-            Section("Name") {
-                TextField(placeholder, text: $name)
-                    .focused($nameFocused)
-                    .accessibilityIdentifier("addDeviceName")
-                    .submitLabel(.done)
-            }
-
-            Section {
-                Picker("Type", selection: $type) {
-                    ForEach(ControlKind.allCases, id: \.self) { kind in
-                        let types = DeviceType.allCases.filter { $0.controlKind == kind }
-                        if !types.isEmpty {
-                            Section(kindTitle(kind)) {
-                                ForEach(types, id: \.self) { option in
-                                    Label(option.label, systemImage: option.symbol).tag(option)
-                                }
-                            }
-                        }
-                    }
-                }
-                .pickerStyle(.navigationLink)
-
-                Picker(
-                    "Room",
-                    selection: Binding(get: { room }, set: { room = $0; roomChosen = true })
-                ) {
-                    ForEach(Room.allCases) { option in
-                        Label(option.displayName, systemImage: option.symbol).tag(option)
-                    }
-                }
-                .pickerStyle(.navigationLink)
-            } footer: {
-                Text("The device opens with the full controls for its type.")
-            }
-        }
-        .navigationTitle("Add Device")
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .confirmationAction) {
-                Button("Add") {
-                    repository.addDevice(name: name, type: type, room: room)
-                    Haptics.confirm()
-                    dismiss()
-                }
-                .buttonStyle(.glassProminent)
-            }
-        }
-        .onChange(of: type) { _, newType in
-            // Until the owner picks a room, suggest one where this type usually lives.
-            guard !roomChosen, !newType.rooms.contains(room),
-                  let suggested = Room.allCases.first(where: { newType.rooms.contains($0) }) else { return }
-            room = suggested
-        }
-    }
-}
-
 // MARK: - Manage
 
-/// Every device, grouped by room and searchable. Tap to edit; swipe to remove.
+/// Every device (or just the favourites), grouped by room and searchable. Tap to edit; swipe to
+/// remove or favourite; + opens the setup wizard.
 struct ManageDevicesView: View {
+    var favoritesOnly = false
+
     @Environment(DeviceRepository.self) private var repository
     @State private var query = ""
+    @State private var showingWizard = false
 
     var body: some View {
         List {
@@ -139,7 +53,7 @@ struct ManageDevicesView: View {
                             NavigationLink {
                                 EditDeviceView(device: device)
                             } label: {
-                                DeviceRow(device: device)
+                                DeviceSetupRow(device: device)
                             }
                             .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                                 Button("Remove", systemImage: "trash", role: .destructive) {
@@ -160,7 +74,7 @@ struct ManageDevicesView: View {
                 }
             }
 
-            if !repository.removedDevices.isEmpty && query.isEmpty {
+            if !repository.removedDevices.isEmpty && query.isEmpty && !favoritesOnly {
                 Section {
                     Button("Restore \(repository.removedDevices.count) Removed Devices", systemImage: "arrow.uturn.backward") {
                         repository.restoreRemovedDevices()
@@ -175,13 +89,19 @@ struct ManageDevicesView: View {
                 ContentUnavailableView.search(text: query)
             }
         }
+        .scrollContentBackground(.hidden)
         .searchable(text: $query, prompt: "Devices, rooms or types")
-        .navigationTitle("Devices")
+        .navigationTitle(favoritesOnly ? "Favourites" : "Devices")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            Button("Add Device", systemImage: "plus") { showingWizard = true }
+        }
+        .sheet(isPresented: $showingWizard) { AddDeviceWizard() }
     }
 
     private func filtered(_ devices: [Device]) -> [Device] {
-        query.isEmpty ? devices : devices.filter(matches)
+        let pool = favoritesOnly ? devices.filter(\.isFavorite) : devices
+        return query.isEmpty ? pool : pool.filter(matches)
     }
 
     private func matches(_ device: Device) -> Bool {
@@ -192,7 +112,8 @@ struct ManageDevicesView: View {
     }
 }
 
-private struct DeviceRow: View {
+/// A device in Setup lists: its icon, name and type, and a star when it is a favourite.
+struct DeviceSetupRow: View {
     let device: Device
 
     var body: some View {
@@ -279,6 +200,7 @@ struct EditDeviceView: View {
                 Button("Remove Device", role: .destructive) { confirmingRemove = true }
             }
         }
+        .scrollContentBackground(.hidden)
         .navigationTitle(device.name)
         .navigationBarTitleDisplayMode(.inline)
         .onAppear { name = device.name }
@@ -345,6 +267,7 @@ struct HomeLayoutView: View {
             }
         }
         .environment(\.editMode, .constant(.active))
+        .scrollContentBackground(.hidden)
         .navigationTitle("Home Screen")
         .navigationBarTitleDisplayMode(.inline)
     }

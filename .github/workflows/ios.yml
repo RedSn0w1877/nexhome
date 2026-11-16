@@ -130,6 +130,7 @@ jobs:
           shoot cameras -startTab cameras
           shoot security-tab -startTab security
           shoot setup -openSetup YES
+          shoot add-device -openAddDevice YES
           shoot thermostat -openKind THERMOSTAT_DIAL
           shoot lights -openKind DIMMER
           shoot media -openKind MEDIA_PLAYER

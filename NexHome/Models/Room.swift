@@ -28,6 +28,17 @@ enum Room: Int, CaseIterable, Hashable, Identifiable, Sendable {
     case patio
     case pool
     case driveway
+    // Rooms the owner can add in Setup. Appended so existing raw values (and accents) stay put.
+    case sunroom
+    case nursery
+    case library
+    case workshop
+    case mediaRoom
+    case playroom
+    case pantry
+    case studio
+    case balcony
+    case gardenShed
 
     var id: Int { rawValue }
 
@@ -59,10 +70,26 @@ enum Room: Int, CaseIterable, Hashable, Identifiable, Sendable {
         case .patio: return "PATIO"
         case .pool: return "POOL"
         case .driveway: return "DRIVEWAY"
+        case .sunroom: return "SUNROOM"
+        case .nursery: return "NURSERY"
+        case .library: return "LIBRARY"
+        case .workshop: return "WORKSHOP"
+        case .mediaRoom: return "MEDIA_ROOM"
+        case .playroom: return "PLAYROOM"
+        case .pantry: return "PANTRY"
+        case .studio: return "STUDIO"
+        case .balcony: return "BALCONY"
+        case .gardenShed: return "GARDEN_SHED"
         }
     }
 
-    var displayName: String {
+    /// The room's name: the owner's rename from Setup, or its default.
+    var displayName: String { Room.customNames[self] ?? defaultName }
+
+    /// The room's icon: the owner's choice from Setup, or its default.
+    var symbol: String { Room.customSymbols[self] ?? defaultSymbol }
+
+    var defaultName: String {
         switch self {
         case .livingRoom: return "Living Room"
         case .kitchen: return "Kitchen"
@@ -89,11 +116,21 @@ enum Room: Int, CaseIterable, Hashable, Identifiable, Sendable {
         case .patio: return "Patio"
         case .pool: return "Pool"
         case .driveway: return "Driveway"
+        case .sunroom: return "Sunroom"
+        case .nursery: return "Nursery"
+        case .library: return "Library"
+        case .workshop: return "Workshop"
+        case .mediaRoom: return "Media Room"
+        case .playroom: return "Playroom"
+        case .pantry: return "Pantry"
+        case .studio: return "Studio"
+        case .balcony: return "Balcony"
+        case .gardenShed: return "Garden Shed"
         }
     }
 
-    /// SF Symbol standing in for the Android build's Material icon.
-    var symbol: String {
+    /// Default SF Symbol for the room.
+    var defaultSymbol: String {
         switch self {
         case .livingRoom: return "sofa.fill"
         case .kitchen: return "fork.knife"
@@ -111,14 +148,46 @@ enum Room: Int, CaseIterable, Hashable, Identifiable, Sendable {
         case .backyard: return "tree.fill"
         case .patio: return "sun.horizon.fill"
         case .pool: return "figure.pool.swim"
+        case .sunroom: return "sun.max.fill"
+        case .nursery: return "teddybear.fill"
+        case .library: return "books.vertical.fill"
+        case .workshop: return "hammer.fill"
+        case .mediaRoom: return "tv.fill"
+        case .playroom: return "puzzlepiece.fill"
+        case .pantry: return "takeoutbag.and.cup.and.straw.fill"
+        case .studio: return "paintpalette.fill"
+        case .balcony: return "building.columns.fill"
+        case .gardenShed: return "leaf.fill"
         }
     }
 }
 
 // Room groupings reused by `DeviceType`.
 extension Room {
+    /// The generated house's outdoor areas (used by the generator, so it never changes).
     static let outdoor: Set<Room> = [.frontYard, .backyard, .patio, .driveway, .pool]
-    static let indoor: Set<Room> = Set(Room.allCases).subtracting(Room.outdoor)
+    /// The generated house's indoor rooms. Listed explicitly so rooms added later never receive
+    /// generated devices (which would reshuffle the seeded house).
+    static let indoor: Set<Room> = [
+        .livingRoom, .kitchen, .primaryBedroom, .bedroomTwo, .bedroomThree, .kidsRoom, .guestRoom,
+        .bathroomOne, .bathroomTwo, .homeOffice, .diningRoom, .hallway, .entryway, .mudroom,
+        .laundryRoom, .garage, .basement, .attic, .gym, .wineCellar,
+    ]
+
+    /// Owner renames and icons from Setup, mirrored here by `DeviceRepository` so every view that
+    /// reads `displayName` / `symbol` picks them up.
+    nonisolated(unsafe) static var customNames: [Room: String] = [:]
+    nonisolated(unsafe) static var customSymbols: [Room: String] = [:]
+
+    /// Icons offered when customising a room.
+    static let symbolChoices: [String] = [
+        "sofa.fill", "bed.double.fill", "fork.knife", "bathtub.fill", "chair.lounge.fill",
+        "chair.fill", "door.left.hand.closed", "washer.fill", "car.fill", "shippingbox.fill",
+        "dumbbell.fill", "wineglass.fill", "leaf.fill", "tree.fill", "sun.horizon.fill",
+        "figure.pool.swim", "sun.max.fill", "teddybear.fill", "books.vertical.fill", "hammer.fill",
+        "tv.fill", "puzzlepiece.fill", "paintpalette.fill", "building.columns.fill",
+        "gamecontroller.fill", "music.note", "desktopcomputer", "stairs", "house.fill", "star.fill",
+    ]
     static let living: Set<Room> = [
         .livingRoom, .primaryBedroom, .bedroomTwo, .bedroomThree, .homeOffice, .guestRoom, .kidsRoom,
     ]

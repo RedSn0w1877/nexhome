@@ -149,8 +149,26 @@ final class AppRouter {
     var tab: AppTab = .home
     var selectedDevice: Device?
     var showingSetup = false
+    var showingAddDevice = false
+    /// Room the add-device wizard should suggest when opened from a room.
+    var addDeviceRoom: Room?
 
     func open(_ device: Device) { selectedDevice = device }
+
+    func addDevice(in room: Room? = nil) {
+        addDeviceRoom = room
+        showingAddDevice = true
+    }
+
+    /// Closes Setup and the wizard, then opens `device`'s controls once the sheets are gone.
+    func openAfterClosingSheets(_ device: Device) {
+        showingAddDevice = false
+        showingSetup = false
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(700))
+            selectedDevice = device
+        }
+    }
 }
 
 enum AppTab: Hashable {

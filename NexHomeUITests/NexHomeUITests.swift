@@ -176,31 +176,96 @@ final class NexHomeUITests: XCTestCase {
         XCTAssertTrue(wait(subtitle, "label CONTAINS 'Morning scene'"), "The scene is applied")
     }
 
-    /// Setup → Add Device creates a device that shows up in Manage Devices.
+    /// The setup wizard: + → choose Floor Lamp → it is "found" → set up → name it → add → open it.
     @MainActor
-    func testSetupAddsADevice() {
+    func testSetupWizardFindsAndAddsADevice() {
         let app = launch()
-        app.buttons["Setup"].firstMatch.tap()
-        let add = app.buttons["Add Device"].firstMatch
-        XCTAssertTrue(add.waitForExistence(timeout: 6), "Setup opens")
-        snap(app, "8-setup")
-        add.tap()
+        app.buttons["Add Device"].firstMatch.tap()
 
-        let name = app.textFields["addDeviceName"]
-        XCTAssertTrue(name.waitForExistence(timeout: 6))
+        let lamp = element(app, id: "setupType.FLOOR_LAMP")
+        XCTAssertTrue(lamp.waitForExistence(timeout: 8), "The wizard asks what to set up")
+        snap(app, "9-wizard-choose")
+        lamp.tap()
+
+        XCTAssertTrue(element(app, id: "setupSearching").waitForExistence(timeout: 4), "It searches")
+        snap(app, "9-wizard-searching")
+
+        let start = app.buttons["setupStart"]
+        XCTAssertTrue(start.waitForExistence(timeout: 10), "It finds the device")
+        snap(app, "9-wizard-found")
+        start.tap()
+
+        XCTAssertTrue(element(app, id: "setupPairing").waitForExistence(timeout: 4), "It pairs")
+        snap(app, "9-wizard-pairing")
+
+        let name = app.textFields["setupName"]
+        XCTAssertTrue(name.waitForExistence(timeout: 15), "It asks for a name and room")
+        app.buttons["Clear name"].firstMatch.tap()
         name.tap()
-        name.typeText("Test Lamp")
-        app.buttons["Add"].firstMatch.tap()
+        name.typeText("Reading Lamp")
+        snap(app, "9-wizard-naming")
+        app.buttons["setupFinish"].tap()
 
-        let manage = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Manage Devices'")).firstMatch
-        XCTAssertTrue(manage.waitForExistence(timeout: 6), "Back on Setup after adding")
-        manage.tap()
-        let search = app.searchFields.firstMatch
-        XCTAssertTrue(search.waitForExistence(timeout: 6))
-        search.tap()
-        search.typeText("Test Lamp")
-        XCTAssertTrue(app.staticTexts["Test Lamp"].firstMatch.waitForExistence(timeout: 6),
-                      "The new device is in the list")
-        snap(app, "8-device-added")
+        let done = element(app, id: "setupDoneTitle")
+        XCTAssertTrue(done.waitForExistence(timeout: 6))
+        XCTAssertTrue(wait(done, "label CONTAINS 'Reading Lamp'"), "The new device is ready")
+        snap(app, "9-wizard-done")
+
+        app.buttons["Open Controls"].firstMatch.tap()
+        let sheet = element(app, id: "deviceSheet")
+        XCTAssertTrue(sheet.waitForExistence(timeout: 8), "Its controls open")
+        XCTAssertTrue(app.staticTexts["Reading Lamp"].firstMatch.waitForExistence(timeout: 4))
+        let toggle = app.switches["powerToggle"]
+        XCTAssertTrue(toggle.waitForExistence(timeout: 4), "The new lamp can be switched")
+        let before = toggle.value as? String
+        toggle.tap()
+        if toggle.value as? String == before { toggle.switches.firstMatch.tap() }
+        XCTAssertTrue(wait(toggle, "value != '\(before ?? "")'"), "The new lamp responds")
+        snap(app, "9-new-device-controls")
+    }
+
+    /// Setup's house controls act on the whole house, and a room can be added.
+    @MainActor
+    func testSetupHouseControlsAndAddingARoom() {
+        let app = launch(["-openSetup", "YES"])
+        let banner = element(app, id: "addDeviceBanner")
+        XCTAssertTrue(banner.waitForExistence(timeout: 10), "Setup opens")
+        snap(app, "10-setup")
+
+        let lightsOff = element(app, id: "houseAction.lightsOff")
+        for _ in 0..<8 where !(lightsOff.exists && lightsOff.isHittable) {
+            app.swipeUp()
+        }
+        XCTAssertTrue(lightsOff.isHittable, "Setup has house controls")
+        snap(app, "10-house-controls")
+        lightsOff.tap()
+        XCTAssertTrue(wait(lightsOff, "label CONTAINS '0 of'"), "All lights go off")
+
+        let addRoom = element(app, id: "addRoomTile")
+        for _ in 0..<8 where !(addRoom.exists && addRoom.isHittable) {
+            app.swipeDown()
+        }
+        addRoom.tap()
+        let sunroom = app.buttons.matching(NSPredicate(format: "label CONTAINS 'Sunroom'")).firstMatch
+        XCTAssertTrue(sunroom.waitForExistence(timeout: 6), "Rooms can be added")
+        sunroom.tap()
+        app.buttons["Add"].firstMatch.tap()
+        XCTAssertTrue(
+            app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS 'Sunroom'"))
+                .firstMatch.waitForExistence(timeout: 6),
+            "The new room is listed in Setup"
+        )
+        snap(app, "10-room-added")
+
+        app.buttons["Done"].firstMatch.tap()
+        app.tabBars.buttons["Rooms"].tap()
+        let tile = element(app, id: "room.25")
+        for _ in 0..<12 where !(tile.exists && tile.isHittable) {
+            app.swipeUp()
+        }
+        XCTAssertTrue(tile.isHittable, "The Sunroom appears in Rooms")
+        tile.tap()
+        XCTAssertTrue(app.staticTexts["No Devices Yet"].firstMatch.waitForExistence(timeout: 6))
+        snap(app, "10-empty-room")
     }
 }

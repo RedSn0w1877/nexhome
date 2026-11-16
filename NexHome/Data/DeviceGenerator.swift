@@ -343,7 +343,7 @@ enum DeviceGenerator {
         device.brightness = device.isOn ? min(max(random.nextDouble(), 0.2), 1) : 0
         device.colorTempK = random.pick([2200, 2700, 3200, 4000, 5000, 6500])
         switch device.type {
-        case .lightStrip, .lamp: device.supportsColor = true
+        case .lightStrip, .lamp, .floorLamp, .colorBulb: device.supportsColor = true
         case .ceilingLight: device.supportsColor = random.chance(0.35)
         default: device.supportsColor = false
         }
@@ -505,7 +505,7 @@ enum DeviceGenerator {
             device.sensorHistory = history(24, &random) { hour, rng in
                 max(0, cosWave(hour, 19) * 5 + 4 + Double(rng.nextInt(0, 4)))
             }
-        case .contactSensor:
+        case .contactSensor, .windowSensor:
             device.sensorValue = random.chance(0.1) ? "Open" : "Closed"
             device.chimeEnabled = random.chance(0.6)
             device.sensorHistory = history(24, &random) { hour, rng in

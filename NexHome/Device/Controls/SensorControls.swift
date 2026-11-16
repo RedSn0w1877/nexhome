@@ -13,7 +13,7 @@ struct SensorControls: View {
         VStack(spacing: 16) {
             switch device.type {
             case .motionSensor: MotionSensorSheet(device: device, accent: accent)
-            case .contactSensor: ContactSensorSheet(device: device, accent: accent)
+            case .contactSensor, .windowSensor: ContactSensorSheet(device: device, accent: accent)
             case .smokeDetector, .coDetector: AlarmDetectorSheet(device: device, accent: accent)
             case .leakSensor: LeakSensorSheet(device: device, accent: accent)
             case .climateSensor: ClimateSensorSheet(device: device, accent: accent)

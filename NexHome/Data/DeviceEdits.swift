@@ -17,6 +17,28 @@ struct DeviceEdits: Codable {
     var rooms: [String: Int] = [:]
     var favorites: [String: Bool] = [:]
     var removed: Set<String> = []
+    /// Rooms the owner added (by `Room.rawValue`), kept even while they hold no devices.
+    var addedRooms: [Int] = []
+    var roomNames: [Int: String] = [:]
+    var roomSymbols: [Int: String] = [:]
+    /// The owner's room order (`Room.rawValue`s); empty means the default order.
+    var roomOrder: [Int] = []
+
+    init() {}
+
+    /// Every key is optional, so edits saved by an older build still load.
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        added = try c.decodeIfPresent([AddedDevice].self, forKey: .added) ?? []
+        names = try c.decodeIfPresent([String: String].self, forKey: .names) ?? [:]
+        rooms = try c.decodeIfPresent([String: Int].self, forKey: .rooms) ?? [:]
+        favorites = try c.decodeIfPresent([String: Bool].self, forKey: .favorites) ?? [:]
+        removed = try c.decodeIfPresent(Set<String>.self, forKey: .removed) ?? []
+        addedRooms = try c.decodeIfPresent([Int].self, forKey: .addedRooms) ?? []
+        roomNames = try c.decodeIfPresent([Int: String].self, forKey: .roomNames) ?? [:]
+        roomSymbols = try c.decodeIfPresent([Int: String].self, forKey: .roomSymbols) ?? [:]
+        roomOrder = try c.decodeIfPresent([Int].self, forKey: .roomOrder) ?? []
+    }
 
     static func load(key: String) -> DeviceEdits {
         guard let data = UserDefaults.standard.data(forKey: key),

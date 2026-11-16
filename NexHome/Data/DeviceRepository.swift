@@ -71,6 +71,12 @@ final class DeviceRepository {
                 acc + (hour < device.powerHistory.count ? device.powerHistory[hour] : 0)
             } / 1000
         }
+        Room.customNames = Dictionary(
+            uniqueKeysWithValues: edits.roomNames.compactMap { key, value in Room(rawValue: key).map { ($0, value) } }
+        )
+        Room.customSymbols = Dictionary(
+            uniqueKeysWithValues: edits.roomSymbols.compactMap { key, value in Room(rawValue: key).map { ($0, value) } }
+        )
         var house: [Device] = []
         for device in generated {
             if let name = edits.names[device.id] { device.name = name }
@@ -99,7 +105,128 @@ final class DeviceRepository {
         byKind = Dictionary(grouping: devices, by: { $0.controlKind })
         let grouped = Dictionary(grouping: devices, by: { $0.room })
         devicesByRoom = grouped
-        roomsWithDevices = Room.allCases.filter { (grouped[$0]?.isEmpty == false) }
+        let rooms = Room.allCases.filter {
+            grouped[$0]?.isEmpty == false || edits.addedRooms.contains($0.rawValue)
+        }
+        if edits.roomOrder.isEmpty {
+            roomsWithDevices = rooms
+        } else {
+            let position = Dictionary(
+                edits.roomOrder.enumerated().map { ($1, $0) }, uniquingKeysWith: { first, _ in first }
+            )
+            roomsWithDevices = rooms.sorted { lhs, rhs in
+                let l = position[lhs.rawValue] ?? Int.max
+                let r = position[rhs.rawValue] ?? Int.max
+                return l == r ? lhs.rawValue < rhs.rawValue : l < r
+            }
+        }
+    }
+
+    // MARK: - Setup: rooms
+
+    /// Rooms that can still be added to the house.
+    var roomsAvailableToAdd: [Room] {
+        Room.allCases.filter { !roomsWithDevices.contains($0) }
+    }
+
+    func addRoom(_ room: Room, name: String? = nil, symbol: String? = nil) {
+        if !edits.addedRooms.contains(room.rawValue) { edits.addedRooms.append(room.rawValue) }
+        if !edits.roomOrder.isEmpty, !edits.roomOrder.contains(room.rawValue) {
+            edits.roomOrder.append(room.rawValue)
+        }
+        if let name { applyRoomName(room, name) }
+        if let symbol { applyRoomSymbol(room, symbol) }
+        reindex()
+        save()
+    }
+
+    /// Renames a room; an empty name restores its default.
+    func renameRoom(_ room: Room, to name: String) {
+        applyRoomName(room, name)
+        reindex()
+        save()
+    }
+
+    func setRoomSymbol(_ room: Room, _ symbol: String?) {
+        applyRoomSymbol(room, symbol)
+        reindex()
+        save()
+    }
+
+    func moveRooms(fromOffsets source: IndexSet, toOffset destination: Int) {
+        var order = roomsWithDevices
+        order.move(fromOffsets: source, toOffset: destination)
+        edits.roomOrder = order.map(\.rawValue)
+        reindex()
+        save()
+    }
+
+    /// Removes a room and every device in it (generated devices stay restorable).
+    func removeRoom(_ room: Room) {
+        for device in devices(in: room) { removeWithoutSaving(device) }
+        edits.addedRooms.removeAll { $0 == room.rawValue }
+        edits.roomOrder.removeAll { $0 == room.rawValue }
+        applyRoomName(room, "")
+        applyRoomSymbol(room, nil)
+        reindex()
+        save()
+    }
+
+    private func applyRoomName(_ room: Room, _ name: String) {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty || trimmed == room.defaultName {
+            edits.roomNames[room.rawValue] = nil
+            Room.customNames[room] = nil
+        } else {
+            edits.roomNames[room.rawValue] = trimmed
+            Room.customNames[room] = trimmed
+        }
+    }
+
+    private func applyRoomSymbol(_ room: Room, _ symbol: String?) {
+        if let symbol, symbol != room.defaultSymbol {
+            edits.roomSymbols[room.rawValue] = symbol
+            Room.customSymbols[room] = symbol
+        } else {
+            edits.roomSymbols[room.rawValue] = nil
+            Room.customSymbols[room] = nil
+        }
+    }
+
+    // MARK: - Setup: house controls
+
+    func setAllLights(_ on: Bool) {
+        for light in devices(ofKind: .dimmer) {
+            light.isOn = on
+            if on && light.brightness < 0.05 { light.brightness = 0.8 }
+        }
+    }
+
+    func setAllPlugs(_ on: Bool) {
+        for plug in devices(ofKind: .toggle) { plug.isOn = on }
+    }
+
+    func lockAllDoors() {
+        for lock in devices(ofKind: .lock) where lock.lockState != .locked {
+            setLocked(lock, true, detail: "Setup · Lock all")
+        }
+    }
+
+    func closeAllGarages() {
+        for door in devices(ofKind: .garage) { closeGarage(door) }
+    }
+
+    func setAlarm(_ state: AlarmState) {
+        for panel in devices(ofKind: .securityPanel) { armSecurity(panel, state) }
+    }
+
+    func stopAllMedia() {
+        for player in devices(ofKind: .mediaPlayer) { player.isPlaying = false }
+    }
+
+    /// Number of devices of `kind` that are on / active, for the house controls' captions.
+    func countOn(ofKind kind: ControlKind) -> Int {
+        devices(ofKind: kind).filter { $0.isOn }.count
     }
 
     // MARK: - Setup: adding and customising devices
@@ -155,6 +282,12 @@ final class DeviceRepository {
 
     /// Removes a device. Hand-added devices are deleted; generated ones can be restored later.
     func remove(_ device: Device) {
+        removeWithoutSaving(device)
+        reindex()
+        save()
+    }
+
+    private func removeWithoutSaving(_ device: Device) {
         devices.removeAll { $0.id == device.id }
         if let index = edits.added.firstIndex(where: { $0.id == device.id }) {
             edits.added.remove(at: index)
@@ -163,8 +296,6 @@ final class DeviceRepository {
             edits.removed.insert(device.id)
             removedDevices.append(device)
         }
-        reindex()
-        save()
     }
 
     /// Puts every removed generated device back in the house.
@@ -180,6 +311,8 @@ final class DeviceRepository {
     /// Forgets every Setup edit and rebuilds the generated house.
     func resetCustomizations() {
         edits = DeviceEdits()
+        Room.customNames = [:]
+        Room.customSymbols = [:]
         save()
         let fresh = DeviceRepository(editsKey: editsKey)
         devices = fresh.devices
@@ -537,6 +670,8 @@ final class DeviceRepository {
     private var evKwhRemainder: [String: Double] = [:]
     private var syncedZones: [String: Set<Int>] = [:]
     private var simulationStarted = false
+    /// Freezes the live simulation (Setup › House controls). Devices still respond to the owner.
+    var simulationPaused = false
 
     /// Keeps the house alive: a fast (~120 ms) motion loop for devices that are animating (garage
     /// doors, vacuums, media progress, EV sessions, appliance cycles, sprinkler zones, arming
@@ -549,13 +684,6 @@ final class DeviceRepository {
     }
 
     private func runMotionLoop() async {
-        let garages = devices(ofKind: .garage)
-        let vacuums = devices(ofKind: .robotVacuum)
-        let media = devices(ofKind: .mediaPlayer)
-        let chargers = devices(ofKind: .evCharger).filter { $0.type == .evCharger }
-        let appliances = devices(ofKind: .applianceCycle).filter { $0.type != .fridge }
-        let sprinklers = devices(ofKind: .sprinklerZones)
-        let panels = devices(ofKind: .securityPanel)
         var tick = 0
         while !Task.isCancelled {
             do {
@@ -563,7 +691,17 @@ final class DeviceRepository {
             } catch {
                 return
             }
+            if simulationPaused { continue }
             tick += 1
+            // Looked up every tick (the lists are cached), so devices added or removed in Setup are
+            // simulated straight away.
+            let garages = devices(ofKind: .garage)
+            let vacuums = devices(ofKind: .robotVacuum)
+            let media = devices(ofKind: .mediaPlayer)
+            let chargers = devices(ofKind: .evCharger).filter { $0.type == .evCharger }
+            let appliances = devices(ofKind: .applianceCycle).filter { $0.type != .fridge }
+            let sprinklers = devices(ofKind: .sprinklerZones)
+            let panels = devices(ofKind: .securityPanel)
             let simMinute = tick % simMinuteTicks == 0
             // Visibly moving things step every tick.
             for d in garages { stepGarage(d) }
@@ -849,14 +987,6 @@ final class DeviceRepository {
     }
 
     private func runSlowLoop() async {
-        let climate = devices(ofKind: .thermostatDial)
-        let heaters = devices(ofKind: .waterHeaterDial)
-        let fans = devices(ofKind: .fanSpeed)
-        let locks = devices(ofKind: .lock)
-        let garages = devices(ofKind: .garage)
-        let vacuums = devices(ofKind: .robotVacuum)
-        let sensors = devices(ofKind: .sensorReadonly)
-        let sprinklers = devices(ofKind: .sprinklerZones)
         var tick = 0
         while !Task.isCancelled {
             do {
@@ -864,7 +994,16 @@ final class DeviceRepository {
             } catch {
                 return
             }
+            if simulationPaused { continue }
             tick += 1
+            let climate = devices(ofKind: .thermostatDial)
+            let heaters = devices(ofKind: .waterHeaterDial)
+            let fans = devices(ofKind: .fanSpeed)
+            let locks = devices(ofKind: .lock)
+            let garages = devices(ofKind: .garage)
+            let vacuums = devices(ofKind: .robotVacuum)
+            let sensors = devices(ofKind: .sensorReadonly)
+            let sprinklers = devices(ofKind: .sprinklerZones)
             driftRandomDevice()
             for d in climate { stepClimate(d) }
             for d in heaters { stepWaterHeater(d) }
@@ -925,7 +1064,7 @@ final class DeviceRepository {
                     d.sensorHistory = withLast(d.sensorHistory, (d.sensorHistory.last ?? 0) + 1)
                 }
             }
-        case .contactSensor:
+        case .contactSensor, .windowSensor:
             if simRandom.chance(0.3) {
                 let opening = d.sensorValue != "Open"
                 d.sensorValue = opening ? "Open" : "Closed"
@@ -1116,7 +1255,7 @@ final class DeviceRepository {
             if d.controlKind == .sensorReadonly {
                 let rolled = shifted(d.sensorHistory)
                 // Event-count sensors start the new hour at zero; level sensors carry the reading over.
-                d.sensorHistory = (d.type == .motionSensor || d.type == .contactSensor)
+                d.sensorHistory = (d.type == .motionSensor || d.type == .contactSensor || d.type == .windowSensor)
                     ? withLast(rolled, 0)
                     : rolled
                 if d.type == .climateSensor { d.tempHistory = d.sensorHistory }

@@ -1356,7 +1356,7 @@ enum MediaKind { case speaker, tv, soundbar }
 
 func mediaKind(_ type: DeviceType) -> MediaKind {
     switch type {
-    case .tv: return .tv
+    case .tv, .smartDisplay: return .tv
     case .soundbar: return .soundbar
     default: return .speaker
     }

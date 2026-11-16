@@ -10,6 +10,7 @@ struct RoomDevicesScreen: View {
     let onDeviceTap: (Device) -> Void
 
     @Environment(DeviceRepository.self) private var repository
+    @Environment(AppRouter.self) private var router
 
     var body: some View {
         let accent = roomAccent(room)
@@ -25,6 +26,7 @@ struct RoomDevicesScreen: View {
 
         ScrollView {
             LazyVStack(spacing: 12) {
+                if !devices.isEmpty {
                 GlassPanel(shape: glassRect(30)) {
                     VStack(alignment: .leading, spacing: 16) {
                         HStack(spacing: 14) {
@@ -87,12 +89,28 @@ struct RoomDevicesScreen: View {
                         DeviceCard(device: device) { onDeviceTap(device) }
                     }
                 }
+                }
             }
             .padding(.horizontal, 20)
             .padding(.vertical, 8)
         }
         .scrollIndicators(.hidden)
+        .overlay {
+            if devices.isEmpty {
+                ContentUnavailableView {
+                    Label("No Devices Yet", systemImage: room.symbol)
+                } description: {
+                    Text("Set up a device and put it in \(room.displayName).")
+                } actions: {
+                    Button("Add a Device") { router.addDevice(in: room) }
+                        .buttonStyle(.glassProminent)
+                }
+            }
+        }
         .wallpaperBackground()
+        .toolbar {
+            Button("Add Device", systemImage: "plus") { router.addDevice(in: room) }
+        }
         .navigationTitle(room.displayName)
         .navigationSubtitle("\(devices.count) devices")
     }

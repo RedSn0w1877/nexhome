@@ -55,9 +55,13 @@ struct RootView: View {
         .sheet(isPresented: $router.showingSetup) {
             SetupScreen()
         }
+        .sheet(isPresented: $router.showingAddDevice) {
+            AddDeviceWizard(preferredRoom: router.addDeviceRoom)
+        }
         // Testing hooks (launch arguments land in UserDefaults), so CI can screenshot screens
         // without touching the simulator:
         //   -startTab rooms|cameras|security   -openKind THERMOSTAT_DIAL   -openSetup YES
+        //   -openAddDevice YES
         .task {
             let defaults = UserDefaults.standard
             switch defaults.string(forKey: "startTab") {
@@ -72,18 +76,23 @@ struct RootView: View {
                 router.selectedDevice = candidates.first { $0.isOn } ?? candidates.first
             } else if defaults.bool(forKey: "openSetup") {
                 router.showingSetup = true
+            } else if defaults.bool(forKey: "openAddDevice") {
+                router.addDevice()
             }
         }
     }
 }
 
-/// The toolbar every top-level screen shares: the wallpaper menu and Setup, grouped into one glass
-/// capsule by the system.
+/// The toolbar every top-level screen shares: add a device, the wallpaper menu and Setup, grouped
+/// into one glass capsule by the system.
 struct HomeToolbar: ToolbarContent {
     @Environment(AppRouter.self) private var router
 
     var body: some ToolbarContent {
         ToolbarItemGroup(placement: .topBarTrailing) {
+            Button("Add Device", systemImage: "plus") {
+                router.addDevice()
+            }
             WallpaperMenu()
             Button("Setup", systemImage: "gearshape") {
                 router.showingSetup = true

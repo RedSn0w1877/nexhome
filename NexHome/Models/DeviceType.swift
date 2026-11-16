@@ -88,6 +88,16 @@ enum DeviceType: String, CaseIterable, Hashable, Sendable {
     case climateSensor = "CLIMATE_SENSOR"
     case securityPanel = "SECURITY_PANEL"
     case bathroomHumidity = "BATHROOM_HUMIDITY"
+    // Set-up-only types: never generated with the house, added through the setup wizard.
+    case pendantLight = "PENDANT_LIGHT"
+    case floorLamp = "FLOOR_LAMP"
+    case colorBulb = "COLOR_BULB"
+    case outdoorPlug = "OUTDOOR_PLUG"
+    case spaceHeater = "SPACE_HEATER"
+    case drivewayGate = "DRIVEWAY_GATE"
+    case babyMonitor = "BABY_MONITOR"
+    case smartDisplay = "SMART_DISPLAY"
+    case windowSensor = "WINDOW_SENSOR"
 
     var label: String {
         switch self {
@@ -135,6 +145,15 @@ enum DeviceType: String, CaseIterable, Hashable, Sendable {
         case .climateSensor: return "Climate Sensor"
         case .securityPanel: return "Security Panel"
         case .bathroomHumidity: return "Humidity Control"
+        case .pendantLight: return "Pendant Light"
+        case .floorLamp: return "Floor Lamp"
+        case .colorBulb: return "Color Bulb"
+        case .outdoorPlug: return "Outdoor Plug"
+        case .spaceHeater: return "Space Heater"
+        case .drivewayGate: return "Driveway Gate"
+        case .babyMonitor: return "Baby Monitor"
+        case .smartDisplay: return "Smart Display"
+        case .windowSensor: return "Window Sensor"
         }
     }
 
@@ -176,26 +195,37 @@ enum DeviceType: String, CaseIterable, Hashable, Sendable {
         case .leakSensor: return "drop.fill"
         case .securityPanel: return "shield.fill"
         case .bathroomHumidity: return "humidity.fill"
+        case .pendantLight: return "lamp.ceiling.fill"
+        case .floorLamp: return "lamp.floor.fill"
+        case .colorBulb: return "lightbulb.led.fill"
+        case .outdoorPlug: return "poweroutlet.type.b.fill"
+        case .spaceHeater: return "heater.vertical.fill"
+        case .drivewayGate: return "door.sliding.left.hand.closed"
+        case .babyMonitor: return "figure.and.child.holdinghands"
+        case .smartDisplay: return "ipad.landscape"
+        case .windowSensor: return "window.vertical.closed"
         }
     }
 
     var controlKind: ControlKind {
         switch self {
-        case .ceilingLight, .lamp, .lightStrip, .wallSconce, .outdoorLight: return .dimmer
-        case .smartPlug, .smartOutlet: return .toggle
-        case .thermostat, .acUnit: return .thermostatDial
+        case .ceilingLight, .lamp, .lightStrip, .wallSconce, .outdoorLight,
+             .pendantLight, .floorLamp, .colorBulb: return .dimmer
+        case .smartPlug, .smartOutlet, .outdoorPlug: return .toggle
+        case .thermostat, .acUnit, .spaceHeater: return .thermostatDial
         case .entryLock, .interiorDoor: return .lock
-        case .garageDoor: return .garage
-        case .indoorCamera, .outdoorCamera, .doorbellCamera: return .cameraFeed
+        case .garageDoor, .drivewayGate: return .garage
+        case .indoorCamera, .outdoorCamera, .doorbellCamera, .babyMonitor: return .cameraFeed
         case .blinds, .shade: return .blindsSlider
-        case .speaker, .tv, .soundbar: return .mediaPlayer
+        case .speaker, .tv, .soundbar, .smartDisplay: return .mediaPlayer
         case .ceilingFan, .standingFan, .airPurifier, .bathroomHumidity: return .fanSpeed
         case .fridge, .oven, .microwave, .dishwasher, .washingMachine, .dryer, .grill: return .applianceCycle
         case .robotVacuum: return .robotVacuum
         case .waterHeater, .poolHeater: return .waterHeaterDial
         case .evCharger, .poolPump: return .evCharger
         case .sprinkler: return .sprinklerZones
-        case .motionSensor, .contactSensor, .smokeDetector, .coDetector, .leakSensor, .climateSensor:
+        case .motionSensor, .contactSensor, .smokeDetector, .coDetector, .leakSensor, .climateSensor,
+             .windowSensor:
             return .sensorReadonly
         case .securityPanel: return .securityPanel
         }
@@ -241,6 +271,9 @@ enum DeviceType: String, CaseIterable, Hashable, Sendable {
         case .climateSensor: return Room.indoor
         case .securityPanel: return [.entryway]
         case .bathroomHumidity: return [.bathroomOne, .bathroomTwo]
+        case .pendantLight, .floorLamp, .colorBulb, .outdoorPlug, .spaceHeater, .drivewayGate,
+             .babyMonitor, .smartDisplay, .windowSensor:
+            return []
         }
     }
 
@@ -254,6 +287,97 @@ enum DeviceType: String, CaseIterable, Hashable, Sendable {
         case .smartPlug: return 1...3
         case .lamp, .wallSconce, .blinds, .smartOutlet, .contactSensor: return 0...2
         default: return 0...1
+        }
+    }
+}
+
+// MARK: - Setup wizard
+
+/// The groups the setup wizard shows device types in.
+enum SetupCategory: String, CaseIterable, Identifiable {
+    case lighting, power, climate, access, cameras, entertainment, appliances, outdoor, sensors
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .lighting: return "Lighting"
+        case .power: return "Power"
+        case .climate: return "Climate"
+        case .access: return "Locks & Doors"
+        case .cameras: return "Cameras"
+        case .entertainment: return "Entertainment"
+        case .appliances: return "Appliances"
+        case .outdoor: return "Outdoor"
+        case .sensors: return "Sensors & Security"
+        }
+    }
+
+    var symbol: String {
+        switch self {
+        case .lighting: return "lightbulb.fill"
+        case .power: return "powerplug.fill"
+        case .climate: return "thermometer.medium"
+        case .access: return "lock.fill"
+        case .cameras: return "video.fill"
+        case .entertainment: return "tv.fill"
+        case .appliances: return "washer.fill"
+        case .outdoor: return "leaf.fill"
+        case .sensors: return "sensor.fill"
+        }
+    }
+}
+
+extension DeviceType {
+    /// Device types that only arrive through the setup wizard (shown with a "New" badge there).
+    var isSetupOnly: Bool { rooms.isEmpty }
+
+    var setupCategory: SetupCategory {
+        switch self {
+        case .ceilingLight, .lamp, .lightStrip, .wallSconce, .pendantLight, .floorLamp, .colorBulb:
+            return .lighting
+        case .smartPlug, .smartOutlet, .outdoorPlug, .evCharger: return .power
+        case .thermostat, .acUnit, .spaceHeater, .ceilingFan, .standingFan, .airPurifier,
+             .bathroomHumidity, .waterHeater:
+            return .climate
+        case .entryLock, .interiorDoor, .garageDoor, .drivewayGate: return .access
+        case .indoorCamera, .outdoorCamera, .doorbellCamera, .babyMonitor: return .cameras
+        case .speaker, .tv, .soundbar, .smartDisplay, .blinds, .shade: return .entertainment
+        case .fridge, .oven, .microwave, .dishwasher, .washingMachine, .dryer, .robotVacuum:
+            return .appliances
+        case .outdoorLight, .grill, .poolHeater, .poolPump, .sprinkler: return .outdoor
+        case .motionSensor, .contactSensor, .smokeDetector, .coDetector, .leakSensor, .climateSensor,
+             .securityPanel, .windowSensor:
+            return .sensors
+        }
+    }
+
+    /// Where the wizard suggests putting a new device of this type.
+    var suggestedRoom: Room {
+        switch self {
+        case .pendantLight: return .diningRoom
+        case .floorLamp, .colorBulb, .smartDisplay: return .livingRoom
+        case .outdoorPlug: return .patio
+        case .spaceHeater: return .homeOffice
+        case .drivewayGate: return .driveway
+        case .babyMonitor: return .kidsRoom
+        case .windowSensor: return .primaryBedroom
+        default: return Room.allCases.first { rooms.contains($0) } ?? .livingRoom
+        }
+    }
+
+    /// The brand line the wizard "discovers" for this type.
+    var setupBrand: String {
+        switch setupCategory {
+        case .lighting: return "Lumen"
+        case .power: return "Volt"
+        case .climate: return "Aero"
+        case .access: return "Keystone"
+        case .cameras: return "Iris"
+        case .entertainment: return "Sonance"
+        case .appliances: return "Hearth"
+        case .outdoor: return "Terra"
+        case .sensors: return "Sentry"
         }
     }
 }
