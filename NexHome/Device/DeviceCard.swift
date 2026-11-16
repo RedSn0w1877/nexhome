@@ -65,6 +65,7 @@ struct DeviceCard: View {
                 repository.setFavorite(device, !device.isFavorite)
             }
         }
+        .accessibilityIdentifier("deviceCard.\(device.id)")
     }
 }
 

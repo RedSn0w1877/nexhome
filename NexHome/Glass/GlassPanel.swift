@@ -232,6 +232,8 @@ struct GlassQuickOrb: View {
         }
         .buttonStyle(GlassControlButtonStyle())
         .animation(GlassMotion.glow, value: lit)
+        .accessibilityValue(lit ? "On" : "Off")
+        .accessibilityIdentifier("quickControl")
     }
 }
 

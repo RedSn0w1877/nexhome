@@ -63,6 +63,7 @@ final class DeviceRepository {
 
     init(seed: UInt64 = 42, editsKey: String = "nexhome.deviceEdits") {
         self.editsKey = editsKey
+        resetSavedStateForUITestsIfNeeded()
         edits = DeviceEdits.load(key: editsKey)
         let generated = DeviceGenerator.generate(seed: seed)
         homeEnergyHistory = (0..<24).map { hour in

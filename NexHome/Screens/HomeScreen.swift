@@ -67,6 +67,7 @@ struct HomeScreen: View {
                 HStack(spacing: 12) {
                     ForEach(repository.roomsWithDevices) { room in
                         RoomCarouselTile(room: room) { onRoomTap(room) }
+                            .accessibilityIdentifier("roomTile.\(room.rawValue)")
                     }
                 }
                 .padding(.horizontal, 20)
@@ -116,6 +117,7 @@ private struct GreetingHero: View {
                     color: NexColors.secondary
                 )
                 .lineLimit(2)
+                .accessibilityIdentifier("heroSubtitle")
 
                 Spacer().frame(height: 12)
 

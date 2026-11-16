@@ -47,6 +47,7 @@ struct RoomsScreen: View {
                 ) {
                     ForEach(rooms) { room in
                         RoomGridTile(room: room) { onRoomTap(room) }
+                            .accessibilityIdentifier("room.\(room.rawValue)")
                     }
                 }
             }

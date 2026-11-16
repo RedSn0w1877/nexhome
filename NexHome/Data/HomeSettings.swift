@@ -83,6 +83,7 @@ final class HomeSettings {
     @ObservationIgnored private var loading = true
 
     init() {
+        resetSavedStateForUITestsIfNeeded()
         let stored = UserDefaults.standard.data(forKey: key)
             .flatMap { try? JSONDecoder().decode(Stored.self, from: $0) } ?? Stored()
         homeName = stored.homeName
@@ -154,6 +155,13 @@ final class AppRouter {
 
 enum AppTab: Hashable {
     case home, rooms, cameras, security
+}
+
+/// UI tests launch with `-uiTesting YES` so every test starts from the original house.
+func resetSavedStateForUITestsIfNeeded() {
+    guard UserDefaults.standard.bool(forKey: "uiTesting") else { return }
+    UserDefaults.standard.removeObject(forKey: "nexhome.deviceEdits")
+    UserDefaults.standard.removeObject(forKey: "nexhome.settings")
 }
 
 /// The wallpaper behind a screen, from the owner's settings.

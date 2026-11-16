@@ -28,6 +28,7 @@ struct DeviceSheet: View {
                 .padding(.bottom, 48)
             }
             .scrollIndicators(.hidden)
+            .accessibilityIdentifier("deviceSheet")
             .navigationTitle(device.type.label)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -100,6 +101,7 @@ struct DeviceSheet: View {
                         )
                         .lineLimit(1)
                         .contentTransition(.numericText())
+                        .accessibilityIdentifier("sheetStatus")
                         NexText(
                             device.isOnline
                                 ? "Online · signal \(device.signalStrength)/4"
@@ -112,6 +114,7 @@ struct DeviceSheet: View {
                     Spacer(minLength: 0)
                     if sheetShowsPowerToggle(device.controlKind) {
                         LiquidToggle(isOn: device.isOn, accent: accent) { device.isOn = $0 }
+                            .accessibilityIdentifier("powerToggle")
                     }
                 }
             }

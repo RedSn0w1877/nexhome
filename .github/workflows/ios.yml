@@ -97,6 +97,7 @@ jobs:
             | jq -r '[.devices | to_entries[] | select(.key | test("iOS")) | .value[]
                       | select(.name | startswith("iPhone"))] | .[0].udid')
           echo "Simulator: $UDID"
+          echo "UDID=$UDID" >> "$GITHUB_ENV"
           xcrun simctl boot "$UDID" || true
           xcrun simctl bootstatus "$UDID" -b
           xcrun simctl install "$UDID" "$APP"
@@ -138,6 +139,37 @@ jobs:
             echo "::error::Not running after launch:$failed"
             exit 1
           fi
+
+      # Interaction test: XCUITest taps through the real app (cards, sheets, switches, the fader,
+      # segmented modes, quick controls, scenes, Setup) and attaches a screenshot at each step.
+      - name: UI tests
+        if: always() && env.UDID != ''
+        run: |
+          set -o pipefail
+          xcodebuild test \
+            -project "$PROJECT" \
+            -scheme "$SCHEME" \
+            -destination "platform=iOS Simulator,id=$UDID" \
+            -derivedDataPath build/TestDerivedData \
+            -resultBundlePath build/UITests.xcresult
+
+      - name: Export UI test screenshots
+        if: always()
+        run: |
+          mkdir -p build/ui-tests
+          if [ -d build/UITests.xcresult ]; then
+            xcrun xcresulttool export attachments --path build/UITests.xcresult --output-path build/ui-tests || true
+            xcrun xcresulttool get test-results tests --path build/UITests.xcresult > build/ui-tests/results.json || true
+          fi
+          ls -la build/ui-tests | head -60
+
+      - name: Upload UI test results
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: NexHome-ui-tests
+          path: build/ui-tests
+          if-no-files-found: warn
 
       - name: Upload screenshots
         if: always()

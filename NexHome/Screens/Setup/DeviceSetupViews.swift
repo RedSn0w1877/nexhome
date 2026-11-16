@@ -69,6 +69,7 @@ struct AddDeviceView: View {
             Section("Name") {
                 TextField(placeholder, text: $name)
                     .focused($nameFocused)
+                    .accessibilityIdentifier("addDeviceName")
                     .submitLabel(.done)
             }
 
